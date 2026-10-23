@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BizLink · Sistema de Despacho & Gestión Operativa</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bizbg: '#f5f4ef',
+            bizdark: '#18191d',
+            bizsubtle: '#ebeae4',
+            bizborder: '#e4e2d9',
+            bizmuted: '#71737c',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-bizbg text-bizdark min-h-screen flex antialiased select-none">
+
+  <!-- ================= SIDEBAR (BizLink Style) ================= -->
+  <aside class="w-64 bg-white border-r border-bizborder flex flex-col justify-between h-screen sticky top-0 z-30 shrink-0 hidden md:flex">
+    <div class="p-6 pb-2">
+      <!-- Logo -->
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-xl bg-bizdark text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          B
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-bizdark leading-none">BizLink</h1>
+          <p class="text-[11px] font-medium text-bizmuted mt-0.5">Operaciones & Despacho</p>
+        </div>
+      </div>
+
+      <!-- Main Navigation -->
+      <nav class="space-y-1" id="sidebar-nav">
+        <button data-a="vw" data-m="ini" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="desp" class="sidebar-item active w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizdark bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="truck" class="w-4 h-4"></i>
+            <span>Despacho & Rutas</span>
+          </div>
+          <span class="text-xs bg-bizdark text-white font-medium px-2 py-0.5 rounded-full" id="side-active-count">0</span>
+        </button>
+
+        <button data-a="vw" data-m="cli" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>Clientes (CRM)</span>
+          </div>
+          <span class="text-xs text-bizmuted font-semibold" id="side-cli-count">6</span>
+        </button>
+
+        <button data-a="vw" data-m="plan" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="kanban-square" class="w-4 h-4"></i>
+            <span>Planeación Visual</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="hor" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+            <span>Horas & Asistencia</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="eq" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="wrench" class="w-4 h-4"></i>
+            <span>Inventario & Equipos</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="con" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="hard-hat" class="w-4 h-4"></i>
+            <span>Contratistas</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="prov" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3">
+            <i data-lucide="package-search" class="w-4 h-4"></i>
+            <span>Proveedores</span>
+          </div>
+        </button>
+      </nav>
+
+      <!-- Active Crew / Members section (BizLink replica) -->
+      <div class="mt-8">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-bizmuted">Cuadrilla Activa</span>
+          <button data-a="per" class="text-bizmuted hover:text-bizdark p-1 rounded-lg transition-colors" title="Gestionar personal">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="side-members-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- User / Session Footer -->
+    <div class="p-4 border-t border-bizborder m-2 bg-bizbg rounded-2xl flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-bizdark text-white flex items-center justify-center font-bold text-xs shadow-sm">
+          AD
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-sm font-bold text-bizdark truncate">Andre Morales</p>
+          <p class="text-xs text-bizmuted truncate">Administrador</p>
+        </div>
+      </div>
+      <button data-a="per" class="p-2 text-bizmuted hover:text-bizdark rounded-xl hover:bg-white transition-all" title="Ajustes de personal">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT AREA ================= -->
+  <div class="flex-1 flex flex-col h-screen overflow-y-auto">
+
+    <!-- Top Navigation / Search Header -->
+    <header class="px-6 py-4 bg-transparent sticky top-0 z-20 flex flex-wrap gap-4 items-center justify-between backdrop-blur-md">
+      <!-- Search Input -->
+      <div class="relative flex-1 min-w-[240px] max-w-md">
+        <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-bizmuted pointer-events-none"></i>
+        <input id="global-search" type="text" placeholder="Buscar conductor, cliente, placa, ficha..." 
+          class="w-full bg-white border border-bizborder rounded-full pl-11 pr-4 py-2.5 text-sm font-medium text-bizdark placeholder:text-bizmuted focus:outline-none focus:ring-2 focus:ring-bizdark focus:border-transparent shadow-sm transition-all">
+      </div>
+
+      <!-- Controls & Action Buttons -->
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <!-- View Toggle for Despacho (Kanban vs Grid) -->
+        <div id="view-mode-container" class="bg-white border border-bizborder rounded-full p-1 flex items-center shadow-sm">
+          <button id="btn-kanban" data-a="set-disp-mode" data-m="kanban" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-bizdark text-white transition-all flex items-center gap-1.5">
+            <i data-lucide="columns-3" class="w-3.5 h-3.5"></i>
+            <span>Kanban</span>
+          </button>
+          <button id="btn-grid" data-a="set-disp-mode" data-m="grid" class="px-3 py-1.5 rounded-full text-xs font-semibold text-bizmuted hover:text-bizdark transition-all flex items-center gap-1.5">
+            <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+            <span>Tarjetas</span>
+          </button>
+        </div>
+
+        <!-- Filter Selector -->
+        <div class="relative">
+          <select id="state-filter" class="bg-white border border-bizborder rounded-full px-4 py-2 text-xs font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark shadow-sm cursor-pointer appearance-none pr-8">
+            <option value="todas">Todos los estados</option>
+            <option value="borrador">Borrador</option>
+            <option value="asignado">Por iniciar</option>
+            <option value="en_ruta">En ruta</option>
+            <option value="en_sitio">En sitio</option>
+            <option value="completado">Completada</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-bizmuted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <!-- Personal button -->
+        <button data-a="per" class="bg-white border border-bizborder hover:bg-bizbg text-bizdark px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-bizmuted"></i>
+          <span>Personal</span>
+        </button>
+
+        <!-- Primary Action Button -->
+        <button id="main-action-btn" data-a="wiz" class="bg-bizdark hover:bg-neutral-800 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all hover:scale-[1.02] active:scale-95">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span id="main-action-label">+ Nueva Ficha</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Navigation Tab Bar (Shown on small screens) -->
+    <div class="flex md:hidden px-4 py-2 overflow-x-auto gap-2 bg-white border-b border-bizborder sticky top-16 z-20">
+      <button data-a="vw" data-m="ini" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizdark text-white">Inicio</button>
+      <button data-a="vw" data-m="desp" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Despacho</button>
+      <button data-a="vw" data-m="cli" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Clientes</button>
+      <button data-a="vw" data-m="plan" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Planeación</button>
+      <button data-a="vw" data-m="hor" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Horas</button>
+      <button data-a="vw" data-m="eq" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Equipos</button>
+      <button data-a="vw" data-m="con" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Contratistas</button>
+      <button data-a="vw" data-m="prov" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Proveedores</button>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 p-6 pt-2 space-y-6 max-w-[1600px] w-full mx-auto">
+
+      <!-- ================= STATS & WIDGETS ROW (BizLink Direct Replica) ================= -->
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-banner">
+        
+        <!-- Widget 1: Activity Bar Chart -->
+        <div class="biz-card p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-bizdark">Despachos diarios</span>
+            <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+14% sem.</span>
+          </div>
+          <!-- Mini SVG Bar Chart -->
+          <div class="h-24 flex items-end justify-between gap-2 pt-2 px-1">
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="w-full bg-bizdark rounded-t-md h-14"></div>
+              <span class="text-[10px] font-semibold text-bizmuted">Lun</span>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="w-full bg-bizborder rounded-t-md h-8 border border-dashed border-bizmuted"></div>
+              <span class="text-[10px] font-semibold text-bizmuted">Mar</span>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="w-full bg-bizdark rounded-t-md h-18" style="height: 4.5rem;"></div>
+              <span class="text-[10px] font-semibold text-bizmuted">Mié</span>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="w-full bg-bizborder rounded-t-md h-11 border border-dashed border-bizmuted"></div>
+              <span class="text-[10px] font-semibold text-bizmuted">Jue</span>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="w-full bg-bizdark rounded-t-md h-16"></div>
+              <span class="text-[10px] font-semibold text-bizmuted">Vie</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Widget 2: Speedometer / Circular Gauge Chart -->
+        <div class="biz-card p-5 flex items-center justify-between">
+          <div>
+            <div class="text-3xl font-extrabold text-bizdark tracking-tight" id="stat-efficiency">84%</div>
+            <p class="text-xs font-semibold text-bizmuted mt-0.5">Efectividad de rutas</p>
+            <span class="text-[11px] text-bizmuted mt-2 inline-block">18 de 21 paradas al día</span>
+          </div>
+          <!-- Gauge Graphic -->
+          <div class="relative flex flex-col items-center justify-center">
+            <svg class="w-24 h-24 transform -rotate-90">
+              <circle cx="48" cy="48" r="38" stroke="#ebeae4" stroke-width="8" fill="transparent" />
+              <circle id="gauge-circle" cx="48" cy="48" r="38" stroke="#18191d" stroke-width="8" stroke-dasharray="238.76" stroke-dashoffset="40" stroke-linecap="round" fill="transparent" />
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <i data-lucide="check-check" class="w-5 h-5 text-bizdark"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Widget 3: Tasks in Progress -->
+        <div class="biz-card p-5 flex flex-col justify-between group cursor-pointer hover:border-bizdark transition-all" data-a="vw" data-m="desp">
+          <div class="flex items-start justify-between">
+            <span class="text-xs font-bold text-bizmuted">Fichas & Operaciones</span>
+            <div class="w-7 h-7 rounded-full bg-bizbg group-hover:bg-bizdark group-hover:text-white flex items-center justify-center transition-all">
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+          <div>
+            <div class="text-3xl font-extrabold text-bizdark tracking-tight" id="stat-active-tasks">3 activas</div>
+            <p class="text-xs font-medium text-bizmuted mt-1" id="stat-tasks-subtitle">6 paradas pendientes de entrega</p>
+          </div>
+        </div>
+
+        <!-- Widget 4: Prepayments & Receivables -->
+        <div class="biz-card p-5 flex flex-col justify-between group cursor-pointer hover:border-bizdark transition-all" data-a="vw" data-m="cli">
+          <div class="flex items-start justify-between">
+            <span class="text-xs font-bold text-bizmuted">Balance por Cobrar</span>
+            <div class="w-7 h-7 rounded-full bg-bizbg group-hover:bg-bizdark group-hover:text-white flex items-center justify-center transition-all">
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+          <div>
+            <div class="text-3xl font-extrabold text-bizdark tracking-tight" id="stat-receivables">$ 120.500</div>
+            <p class="text-xs font-medium text-bizmuted mt-1" id="stat-receivables-sub">Clientes con crédito activo</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION VIEWS ================= -->
+      
+      <!-- VIEW: DESPACHO (Default) -->
+      <section id="view-desp" class="space-y-4">
+        <!-- Kanban Columns Container or Grid Container injected by JS -->
+        <div id="desp-content" class="w-full"></div>
+      </section>
+
+      <!-- VIEW: INICIO (Dashboard de Alertas) -->
+      <section id="view-ini" style="display: none;" class="space-y-6">
+        <div id="ini-content"></div>
+      </section>
+
+      <!-- VIEW: CLIENTES (CRM) -->
+      <section id="view-cli" style="display: none;" class="space-y-6">
+        <div id="cli-content"></div>
+      </section>
+
+      <!-- VIEW: PLANEACIÓN (Canvas Visual) -->
+      <section id="view-plan" style="display: none;" class="space-y-4">
+        <div id="plan-content"></div>
+      </section>
+
+      <!-- VIEW: HORAS EXTRA & FALTAS -->
+      <section id="view-hor" style="display: none;" class="space-y-6">
+        <div id="hor-content"></div>
+      </section>
+
+      <!-- VIEW: EQUIPOS & ASIGNACIONES -->
+      <section id="view-eq" style="display: none;" class="space-y-6">
+        <div id="eq-content"></div>
+      </section>
+
+      <!-- VIEW: CONTRATISTAS -->
+      <section id="view-con" style="display: none;" class="space-y-6">
+        <div id="con-content"></div>
+      </section>
+
+      <!-- VIEW: PROVEEDORES -->
+      <section id="view-prov" style="display: none;" class="space-y-6">
+        <div id="prov-content"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= ALL MODALS & DIALOGS ================= -->
+  <!-- Dialog: Wizard Nueva Ficha -->
+  <dialog id="dlg-wiz">
+    <div class="dialog-content w-[480px]">
+      <div id="wiz-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Ajustes de Ficha -->
+  <dialog id="dlg-cfg">
+    <div class="dialog-content w-[500px]">
+      <div id="cfg-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Enviar Hoja de Ruta por WhatsApp / Imprimir -->
+  <dialog id="dlg-send">
+    <div class="dialog-content w-[560px]">
+      <div id="send-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Gestión de Personal -->
+  <dialog id="dlg-per">
+    <div class="dialog-content w-[520px]">
+      <div id="per-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Gestión de Artículo -->
+  <dialog id="dlg-itm">
+    <div class="dialog-content w-[500px]">
+      <div id="itm-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Cliente -->
+  <dialog id="dlg-cli">
+    <div class="dialog-content w-[580px]">
+      <div id="cli-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Mensaje Masivo Clientes -->
+  <dialog id="dlg-cmsg">
+    <div class="dialog-content w-[540px]">
+      <div id="cmsg-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Contratista -->
+  <dialog id="dlg-con">
+    <div class="dialog-content w-[580px]">
+      <div id="con-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Proveedor -->
+  <dialog id="dlg-prov">
+    <div class="dialog-content w-[600px]">
+      <div id="prov-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Calificación -->
+  <dialog id="dlg-rate">
+    <div class="dialog-content w-[460px]">
+      <div id="rate-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Vincular Datos a Planeación -->
+  <dialog id="dlg-plk">
+    <div class="dialog-content w-[540px]">
+      <div id="plk-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Enviar Planeación por WhatsApp -->
+  <dialog id="dlg-plm">
+    <div class="dialog-content w-[540px]">
+      <div id="plm-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
