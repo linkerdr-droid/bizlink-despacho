@@ -3067,6 +3067,7 @@ function setAuthMode(m) {
   $('#login-btn').textContent = b;
   $$('.auth-reg').forEach(el => { el.style.display = m === 'registro' ? '' : 'none'; });
   $('#login-pass-wrap').style.display = m === 'recuperar' ? 'none' : '';
+  $('#login-guest').style.display = m === 'recuperar' ? 'none' : '';
   $('#login-pass').autocomplete = m === 'registro' ? 'new-password' : 'current-password';
   $('#login-alt').innerHTML = m === 'entrar'
     ? '¿No tienes cuenta? <button type="button" onclick="setAuthMode(\'registro\')" class="font-bold text-bizdark underline">Crear cuenta</button><br><button type="button" onclick="setAuthMode(\'recuperar\')" class="font-semibold text-bizmuted underline mt-1">Olvidé mi contraseña</button>'
@@ -3118,6 +3119,25 @@ async function doLogin() {
 }
 window.doLogin = doLogin;
 
+// Acceso provisional para pruebas: sesión anónima de Supabase.
+// Funciona igual que una cuenta (su propia empresa, guardado, tiempo real) y el navegador la recuerda.
+async function doGuest() {
+  const btn = $('#login-guest'), html = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+  const { data, error } = await DB.sb.auth.signInAnonymously({ options: { data: { empresa: 'Empresa de prueba', nombre: 'Invitado' } } });
+  btn.disabled = false;
+  btn.innerHTML = html;
+  lucide.createIcons();
+  if (error) {
+    return authMsg(/anonymous sign-ins are disabled/i.test(error.message)
+      ? 'Para entrar como invitado activa "Allow anonymous sign-ins" en Supabase → Authentication → Sign In / Providers.'
+      : authErr(error));
+  }
+  dbBoot(data.session);
+}
+window.doGuest = doGuest;
+
 // Enlace de "Olvidé mi contraseña": pedir la nueva al volver a la app
 if (DB.on) DB.sb.auth.onAuthStateChange(async ev => {
   if (ev !== 'PASSWORD_RECOVERY') return;
@@ -3161,7 +3181,7 @@ async function dbBoot(session) {
     const nm = $('#user-name'), rl = $('#user-role'), av = $('#user-ini');
     const quien = yo.nombre || (session.user.user_metadata || {}).nombre || DB.email.split('@')[0];
     if (nm) nm.textContent = quien;
-    if (rl) rl.textContent = empNombre || DB.email;
+    if (rl) rl.textContent = (empNombre || DB.email || '') + (session.user.is_anonymous ? ' · invitado' : '');
     if (av) av.textContent = ini(quien);
     hideLogin();
     rerenderAll();
@@ -3208,7 +3228,11 @@ async function subirImg(dataUrl, carpeta) {
 Object.assign(ACT, {
   logout: async () => {
     if (!DB.on) return toast('Modo demo: no hay sesión iniciada');
-    if (!confirm('¿Cerrar sesión?')) return;
+    const { data: { session } } = await DB.sb.auth.getSession();
+    const invitado = session && session.user.is_anonymous;
+    if (!confirm(invitado
+      ? '¿Cerrar sesión de invitado?\n\nNo podrás volver a entrar a esta empresa de prueba: la próxima vez como invitado se creará una nueva.'
+      : '¿Cerrar sesión?')) return;
     await flush();
     await DB.sb.auth.signOut();
     location.reload();

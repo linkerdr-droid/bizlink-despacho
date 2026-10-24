@@ -7,15 +7,20 @@
 -- =====================================================================
 
 -- ---------- 0. Limpieza de la versión anterior (lista de correos, sin empresas) ----------
--- Solo contenía datos de ejemplo. Si nunca ejecutaste la versión anterior, esto no hace nada.
-drop table if exists public.entidades cascade;
-drop table if exists public.seguimiento cascade;
+-- Solo borra tablas de la versión vieja (sin columna empresa_id). Con la versión actual NO borra nada,
+-- así que este archivo se puede volver a ejecutar sin perder datos.
 do $$
+declare
+  t text;
 begin
-  if exists (select 1 from information_schema.columns
-             where table_schema = 'public' and table_name = 'miembros' and column_name = 'empresa_id') is false then
-    drop table if exists public.miembros cascade;
-  end if;
+  foreach t in array array['entidades', 'seguimiento', 'miembros'] loop
+    if to_regclass('public.' || t) is not null and not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = t and column_name = 'empresa_id'
+    ) then
+      execute format('drop table public.%I cascade', t);
+    end if;
+  end loop;
 end $$;
 drop function if exists public.es_miembro() cascade;
 
@@ -67,8 +72,9 @@ as $$
 declare
   v_emp uuid;
 begin
+  -- Los invitados (inicio de sesión anónimo) no tienen correo
   insert into public.empresas (nombre, creado_por)
-  values (coalesce(nullif(trim(new.raw_user_meta_data ->> 'empresa'), ''), split_part(new.email, '@', 1)), new.id)
+  values (coalesce(nullif(trim(new.raw_user_meta_data ->> 'empresa'), ''), nullif(split_part(coalesce(new.email, ''), '@', 1), ''), 'Empresa de prueba'), new.id)
   returning id into v_emp;
 
   insert into public.miembros (empresa_id, user_id, email, nombre, rol)
@@ -96,7 +102,7 @@ begin
   if v_emp is not null then return v_emp; end if;
 
   insert into public.empresas (nombre, creado_por)
-  values (coalesce(nullif(trim(p_nombre), ''), split_part(v_email, '@', 1)), auth.uid())
+  values (coalesce(nullif(trim(p_nombre), ''), nullif(split_part(coalesce(v_email, ''), '@', 1), ''), 'Empresa de prueba'), auth.uid())
   returning id into v_emp;
   insert into public.miembros (empresa_id, user_id, email, rol) values (v_emp, auth.uid(), v_email, 'dueño');
   return v_emp;
