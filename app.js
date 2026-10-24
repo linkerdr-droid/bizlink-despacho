@@ -372,6 +372,9 @@ function updateStatsBanner() {
   const cliCount = $('#side-cli-count');
   if (cliCount) cliCount.textContent = CLI.length;
 
+  const iniCount = $('#side-msg-count');
+  if (iniCount) { const n = ixPendientes(); iniCount.textContent = n || ''; iniCount.title = `${n} chat${n === 1 ? '' : 's'} o recordatorio${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`; }
+
   // Actualizar círculo de progreso SVG
   const circle = $('#gauge-circle');
   if (circle) {
@@ -561,9 +564,21 @@ function renderFichaCard(f, isHighlightedDark = false) {
           <span>Enviar WhatsApp</span>
         </button>
 
-        <button data-a="cfg" data-id="${f.id}" class="p-1.5 text-bizmuted hover:text-bizdark rounded-lg transition-colors" title="Ajustes">
-          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
-        </button>
+        <div class="flex items-center gap-0.5">
+          ${(() => {
+            const est = f.par.map(p => IX['par:' + p.id] && IX['par:' + p.id].estado_interaccion);
+            const dot = est.includes('por_responder') ? 'bg-rose-500' : est.includes('esperando') ? 'bg-amber-400' : est.some(Boolean) ? 'bg-emerald-500' : '';
+            return `<button data-a="wapop" data-k="fic:${f.id}" class="relative p-1.5 ${isHighlightedDark ? 'text-zinc-300 hover:text-white' : 'text-emerald-600 hover:text-emerald-700'} rounded-lg transition-colors" title="WhatsApp a los clientes de la ruta">
+              <i data-lucide="message-circle" class="w-4 h-4"></i>${dot ? `<span class="absolute top-1 right-1 w-2 h-2 rounded-full ${dot} ring-2 ${isHighlightedDark ? 'ring-[#191a1f]' : 'ring-white'}"></span>` : ''}
+            </button>`;
+          })()}
+          <button data-a="snz" data-k="fic:${f.id}" class="p-1.5 ${f.par.some(p => IX['par:' + p.id] && IX['par:' + p.id].fecha_recordatorio) ? 'text-violet-500' : 'text-bizmuted'} hover:text-violet-500 rounded-lg transition-colors" title="⏰ Recordar">
+            <i data-lucide="alarm-clock" class="w-4 h-4"></i>
+          </button>
+          <button data-a="cfg" data-id="${f.id}" class="p-1.5 text-bizmuted hover:text-bizdark rounded-lg transition-colors" title="Ajustes">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
     </article>
   `;
@@ -675,6 +690,7 @@ function renderClientes() {
                 <div class="text-right">
                   <span class="biz-pill pill-${LE[c.est][1]}">${LE[c.est][0]}</span>
                   ${v ? `<p class="text-[11px] font-bold text-rose-600 mt-1">Vence ${$m(v)}</p>` : s ? `<p class="text-[11px] font-bold text-amber-600 mt-1">Debe ${$m(s)}</p>` : ''}
+                  ${IX['cli:' + c.id] && IX['cli:' + c.id].estado_interaccion ? `<div class="mt-1">${ixPill('cli:' + c.id)}</div>` : ''}
                 </div>
               </div>
             </div>
@@ -713,7 +729,14 @@ function renderClientDetail(c) {
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          ${ixPill('cli:' + c.id, false)}
+          <button data-a="wapop" data-k="cli:${c.id}" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all" title="Plantillas de WhatsApp">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i><span>WhatsApp</span><i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+          <button data-a="snz" data-k="cli:${c.id}" class="p-2 rounded-xl border border-bizborder text-bizmuted hover:text-violet-600 hover:bg-violet-50 transition-all" title="⏰ Recordar">
+            <i data-lucide="alarm-clock" class="w-4 h-4"></i>
+          </button>
           <button data-a="lfav" data-m="${c.id}" class="p-2 rounded-xl border border-bizborder text-bizmuted hover:text-rose-500 hover:bg-rose-50 transition-all" title="Favorito">
             <i data-lucide="heart" class="w-4 h-4 ${c.fav ? 'fill-rose-500 text-rose-500' : ''}"></i>
           </button>
@@ -806,7 +829,10 @@ function renderInicio() {
   if (!container) return;
 
   container.innerHTML = `
-    <div class="biz-card p-6 space-y-6">
+    ${demoBanner() ? `<div class="mb-6">${demoBanner()}</div>` : ''}
+    ${ixWidget()}
+
+    <div class="biz-card p-6 space-y-6 mt-6">
       <div class="flex items-center justify-between pb-4 border-b border-bizborder">
         <div>
           <h2 class="text-lg font-bold text-bizdark">Panel de Control & Alertas Prioritarias</h2>
@@ -876,6 +902,8 @@ function toast(msg, tone = 'dark') {
   if (!box) return;
   const el = document.createElement('div');
   el.className = `px-4 py-2.5 rounded-2xl text-xs font-bold shadow-xl text-white transition-opacity duration-300 ${tone === 'rose' ? 'bg-rose-600' : 'bg-bizdark'}`;
+  // Lectores de pantalla: los errores se anuncian de inmediato; el resto, al terminar lo que leían
+  el.setAttribute('role', tone === 'rose' ? 'alert' : 'status');
   el.textContent = msg;
   box.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2600);
@@ -895,7 +923,7 @@ function formDlg(dlg, title, sub, fields, act, id = '') {
   const body = $(`#${dlg}-body`);
   if (!body) return;
   body.innerHTML = `
-    <form id="frm-${dlg}" class="space-y-5" onsubmit="return false">
+    <form id="frm-${dlg}" class="space-y-5" onsubmit="return false" novalidate data-validar>
       <div class="flex items-center justify-between pb-3 border-b border-bizborder">
         <div>
           <h3 class="text-base font-bold text-bizdark">${title}</h3>
@@ -908,10 +936,10 @@ function formDlg(dlg, title, sub, fields, act, id = '') {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         ${fields.map(f => `
           <label class="block ${f.full ? 'sm:col-span-2' : ''}">
-            <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">${f.l}</span>
-            ${f.opts ? `<select name="${f.k}" class="${INP}">${f.opts.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(f.v ?? '') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`
-              : f.type === 'textarea' ? `<textarea name="${f.k}" rows="3" class="${INP} resize-none">${esc(f.v)}</textarea>`
-              : `<input name="${f.k}" type="${f.type || 'text'}" value="${esc(f.v)}" placeholder="${esc(f.ph || '')}" class="${INP}">`}
+            <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">${f.l}${f.req ? '<span class="req-mark" aria-hidden="true">*</span>' : ''}</span>
+            ${f.opts ? `<select name="${f.k}" id="${dlg}-${f.k}" class="${INP}">${f.opts.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(f.v ?? '') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`
+              : f.type === 'textarea' ? `<textarea name="${f.k}" id="${dlg}-${f.k}" rows="3" ${f.req ? 'required aria-required="true"' : ''} class="${INP} resize-none">${esc(f.v)}</textarea>`
+              : `<input name="${f.k}" id="${dlg}-${f.k}" type="${f.type || 'text'}" value="${esc(f.v)}" placeholder="${esc(f.ph || '')}" ${f.req ? 'required aria-required="true"' : ''} ${f.type === 'number' ? `min="${f.min ?? 0}" step="any"` : ''} class="${INP}">`}
           </label>
         `).join('')}
       </div>
@@ -1189,7 +1217,7 @@ function renderConDetail(c) {
 
 function conForm(c) {
   formDlg('con', c ? 'Editar contratista' : 'Nuevo contratista', c ? esc(c.n) : 'Registra un técnico o empresa externa', [
-    { k: 'n', l: 'Nombre', v: c?.n },
+    { k: 'n', l: 'Nombre', v: c?.n, req: 1 },
     { k: 'o', l: 'Oficio / especialidad', v: c?.o, ph: 'Electricista, plomero...' },
     { k: 'e', l: 'Empresa', v: c?.e },
     { k: 't', l: 'Teléfono / WhatsApp', v: c?.t, type: 'tel' },
@@ -1385,7 +1413,7 @@ function renderProvDetail(v) {
 
 function provForm(v) {
   formDlg('prov', v ? 'Editar proveedor' : 'Nuevo proveedor', v ? esc(v.n) : 'Registra un suplidor y sus condiciones', [
-    { k: 'n', l: 'Nombre comercial', v: v?.n },
+    { k: 'n', l: 'Nombre comercial', v: v?.n, req: 1 },
     { k: 'c', l: 'Categoría', v: v?.c, ph: 'Materiales eléctricos...' },
     { k: 'ct', l: 'Persona de contacto', v: v?.ct },
     { k: 't', l: 'Teléfono / WhatsApp', v: v?.t, type: 'tel' },
@@ -2128,8 +2156,8 @@ const ACT = {
     closeDlg('dlg-con'); renderContratistas(); toast(c ? 'Contratista actualizado' : 'Contratista agregado');
   },
   knew: t => formDlg('rate', 'Nuevo proyecto', esc(findIn(CON, t.dataset.id).n), [
-    { k: 'pr', l: 'Proyecto', full: 1, ph: 'Remodelación de oficina…' },
-    { k: 'm', l: 'Monto total', type: 'number', v: '' },
+    { k: 'pr', l: 'Proyecto', full: 1, ph: 'Remodelación de oficina…', req: 1 },
+    { k: 'm', l: 'Monto total', type: 'number', v: '', req: 1, min: 1 },
     { k: 'et', l: 'Esquema de pagos', v: '30-40-30', opts: [['30-40-30', 'Anticipo 30 · Avance 40 · Final 30'], ['50-50', 'Anticipo 50 · Final 50'], ['40-30-30', 'Anticipo 40 · Avance 30 · Final 30'], ['25x4', '4 pagos de 25 %'], ['100', 'Pago único al terminar']] },
     { k: 'i', l: 'Inicio', type: 'date', v: hoy() },
     { k: 'f', l: 'Entrega estimada', type: 'date', v: addD(hoy(), 30) }
@@ -2171,7 +2199,7 @@ const ACT = {
     renderContratistas();
   },
   jnew: t => formDlg('rate', 'Registrar trabajo', esc(findIn(CON, t.dataset.id).n), [
-    { k: 'j', l: 'Trabajo realizado', full: 1 },
+    { k: 'j', l: 'Trabajo realizado', full: 1, req: 1 },
     { k: 'd', l: 'Fecha', type: 'date', v: hoy() },
     { k: 'c', l: 'Costo', type: 'number', v: '' },
     { k: 'r', l: 'Resultado', v: 'bien', opts: Object.entries(RES).map(([k, v]) => [k, v[0]]) }
@@ -2202,8 +2230,8 @@ const ACT = {
     closeDlg('dlg-prov'); renderProveedores(); toast(v ? 'Proveedor actualizado' : 'Proveedor agregado');
   },
   fnew: t => formDlg('rate', 'Registrar factura por pagar', esc(findIn(PROV, t.dataset.id).n), [
-    { k: 'c', l: 'Concepto', full: 1, ph: 'Materiales obra…' },
-    { k: 'm', l: 'Monto', type: 'number', v: '' },
+    { k: 'c', l: 'Concepto', full: 1, ph: 'Materiales obra…', req: 1 },
+    { k: 'm', l: 'Monto', type: 'number', v: '', req: 1, min: 1 },
     { k: 'd', l: 'Fecha de factura', type: 'date', v: hoy() }
   ], 'fsave', t.dataset.id),
   fsave: t => {
@@ -2239,12 +2267,13 @@ const ACT = {
   },
   adel: t => {
     const i = ART.findIndex(a => a.id === t.dataset.id);
-    if (i < 0 || !confirm(`¿Eliminar "${ART[i].n}" del inventario?`)) return;
-    ART.splice(i, 1);
+    if (i < 0) return;
+    const [a] = ART.splice(i, 1);
     renderEquipos();
+    toastUndo(`"${a.n}" eliminado del inventario`, () => { ART.splice(Math.min(i, ART.length), 0, a); renderEquipos(); });
   },
   inew: () => formDlg('itm', 'Nuevo artículo', 'Equipo, herramienta o dispositivo de la empresa', [
-    { k: 'n', l: 'Nombre', full: 1, ph: 'Taladro, celular, escalera…' },
+    { k: 'n', l: 'Nombre', full: 1, ph: 'Taladro, celular, escalera…', req: 1 },
     { k: 'c', l: 'Categoría', v: 'Herramientas', opts: ACAT.map(x => [x, x]) },
     { k: 'i', l: 'Ícono', v: 'wrench', opts: AI },
     { k: 'd', l: 'Detalle / serie', full: 1, ph: 'Marca, modelo, IMEI, número de serie…' },
@@ -2506,7 +2535,7 @@ function garList() {
 
   return `
     <div class="hidden lg:grid grid-cols-[1.3fr_1.6fr_1.1fr_1fr_auto] gap-4 px-5 py-3 border-b border-bizborder text-[11px] font-bold text-bizmuted uppercase tracking-wider">
-      <span>Cliente</span><span>Producto / servicio</span><span>Cobertura</span><span>Estado</span><span class="w-[212px] text-right">Acciones</span>
+      <span>Cliente</span><span>Producto / servicio</span><span>Cobertura</span><span>Estado</span><span class="w-[250px] text-right">Acciones</span>
     </div>
     <div class="divide-y divide-bizborder">
       ${rows.map(({ g, s, c }) => {
@@ -2534,11 +2563,13 @@ function garList() {
             <div class="flex flex-col items-start gap-1">
               <span class="biz-pill pill-${s.t}">${s.l}</span>
               ${s.tk ? `<button data-a="vw" data-m="desp" class="text-[11px] font-bold text-rose-700 underline">Ticket en ${esc(s.tk.f.cod)} →</button>` : ''}
+              ${ixPill('gar:' + g.id)}
             </div>
             <div class="flex items-center gap-1.5 lg:justify-end">
               ${c.t
-                ? `<a target="_blank" rel="noopener" href="${wlink(c, garMsg(g))}" class="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap" title="Recordatorio / mantenimiento por WhatsApp"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>Notificar</a>`
+                ? `<button data-a="wapop" data-k="gar:${g.id}" class="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap" title="Recordatorio / mantenimiento por WhatsApp"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>Notificar<i data-lucide="chevron-down" class="w-3 h-3"></i></button>`
                 : '<span class="px-3 py-1.5 rounded-full bg-bizbg text-bizmuted text-[11px] font-bold">Sin WhatsApp</span>'}
+              <button data-a="snz" data-k="gar:${g.id}" class="p-1.5 ${IX['gar:' + g.id] && IX['gar:' + g.id].fecha_recordatorio ? 'text-violet-600' : 'text-bizmuted'} hover:text-violet-600" title="⏰ Recordar"><i data-lucide="alarm-clock" class="w-3.5 h-3.5"></i></button>
               <button data-a="gtk" data-id="${g.id}" class="${BTN_MINI} whitespace-nowrap" title="Crear ticket y ficha de despacho"><i data-lucide="wrench" class="w-3.5 h-3.5"></i>Crear ticket</button>
               <button data-a="gdel" data-id="${g.id}" class="p-1.5 text-bizmuted hover:text-rose-600" title="Eliminar garantía"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
             </div>
@@ -2787,10 +2818,16 @@ Object.assign(ACT, {
   },
   gdel: t => {
     const g = GAR.find(x => x.id === t.dataset.id);
-    if (!g || !confirm(`¿Eliminar la garantía de "${g.prod}"?`)) return;
-    GAR.splice(GAR.indexOf(g), 1);
-    const c = garCli(g); if (c && c.eq) c.eq = c.eq.filter(e => e.id !== g.id);
-    renderGarantias();
+    if (!g) return;
+    const i = GAR.indexOf(g), c = garCli(g), eqAntes = c && c.eq ? [...c.eq] : null;
+    GAR.splice(i, 1);
+    if (c && c.eq) c.eq = c.eq.filter(e => e.id !== g.id);
+    renderGarantias(); updateStatsBanner();
+    toastUndo(`Garantía de "${g.prod}" eliminada`, () => {
+      GAR.splice(Math.min(i, GAR.length), 0, g);
+      if (c && eqAntes) c.eq = eqAntes;
+      renderGarantias(); updateStatsBanner();
+    });
   },
   gtk: t => openTicket(GAR.find(x => x.id === t.dataset.id)),
   tkper: t => { const id = t.dataset.id; TK.mem = TK.mem.includes(id) ? TK.mem.filter(x => x !== id) : [...TK.mem, id]; renderTicket(); },
@@ -2809,6 +2846,8 @@ Object.assign(ACT, {
     };
     F.push(f);
     (g.tk = g.tk || []).push({ fid: f.id, sid: stop.id, d: hoy(), falla: TK.falla.trim() });
+    // El cliente reportó una falla: queda pendiente responderle
+    ixSet('gar:' + g.id, { estado_interaccion: 'por_responder', por_responder_desde: nowISO() });
     $('#dlg-tkt').close();
     renderGarantias(); updateStatsBanner();
     toast(`Ticket creado: ficha ${f.cod} asignada a ${f.mem.map(m => m.n.split(' ')[0]).join(', ')}`);
@@ -2982,9 +3021,9 @@ const renderCatList = () => { const el = $('#cat-list'); if (el) { el.innerHTML 
 
 function catForm(c) {
   formDlg('cat', c ? 'Editar ítem' : 'Nuevo ítem', c ? esc(c.nombre) : 'Producto, servicio, flete o combo de tu lista de precios', [
-    { k: 'nombre', l: 'Nombre', v: c?.nombre, full: 1, ph: 'Ej. Instalación de Aire 12K BTU' },
+    { k: 'nombre', l: 'Nombre', v: c?.nombre, full: 1, ph: 'Ej. Instalación de Aire 12K BTU', req: 1 },
     { k: 'categoria', l: 'Categoría', v: c?.categoria || 'Servicio', full: 1, opts: Object.keys(KCAT).map(x => [x, x]) },
-    { k: 'precio_estandar', l: 'Precio estándar', type: 'number', v: c?.precio_estandar ?? '', full: 1, ph: '0.00' },
+    { k: 'precio_estandar', l: 'Precio estándar', type: 'number', v: c?.precio_estandar ?? '', full: 1, ph: '0.00', req: 1 },
     { k: 'precio_minimo', l: 'Precio mínimo (opcional · límite para descuentos)', type: 'number', v: c?.precio_minimo ?? '', full: 1, ph: 'Sin mínimo' },
     { k: 'descripcion_whatsapp', l: 'Descripción para WhatsApp', type: 'textarea', v: c?.descripcion_whatsapp, full: 1 },
     ...(c ? [{ k: 'estado', l: 'Estado', v: c.estado || 'Activo', full: 1, opts: [['Activo', 'Activo'], ['Inactivo', 'Inactivo (no aparece al armar fichas)']] }] : [])
@@ -3160,13 +3199,22 @@ Object.assign(ACT, {
   },
   catdel: async t => {
     const c = CAT.find(x => x.id === t.dataset.id);
-    if (!c || !confirm(`¿Eliminar "${c.nombre}" del catálogo?\n\nLas fichas y garantías que ya lo usan no cambian.`)) return;
+    if (!c) return;
     if (catEnNube()) {
       const { error } = await DB.sb.from('catalogo_servicios').delete().eq('id', c.id);
       if (error) return toast('No se pudo eliminar: ' + error.message, 'rose');
     }
     CAT.splice(CAT.indexOf(c), 1);
     renderCatalogo();
+    // Las fichas y garantías que ya lo usan no cambian
+    toastUndo(`"${c.nombre}" eliminado del catálogo`, async () => {
+      if (catEnNube()) {
+        const { error } = await DB.sb.from('catalogo_servicios').insert(c);
+        if (error) return toast('No se pudo restaurar: ' + error.message, 'rose');
+      }
+      if (!CAT.some(x => x.id === c.id)) CAT.push(c);
+      sortCat(); renderCatalogo();
+    });
   },
   catdemo: async t => { t.disabled = true; await catSeed(); renderCatalogo(); toast('Catálogo de ejemplo cargado'); },
 
@@ -3217,6 +3265,689 @@ document.addEventListener('keydown', e => {
   if (b) b.click();
 });
 
+// ================= COMUNICACIONES: PLANTILLAS, SEGUIMIENTO DE CHATS Y RECORDATORIOS =================
+// Plantillas: tabla plantillas_mensajes (migración 003).
+// Seguimiento: IX['cli:l1' | 'par:s2' | 'gar:q1'] = { estado_interaccion, ultimo_mensaje_fecha, por_responder_desde, fecha_recordatorio }
+const TCAT = { 'Ventas': ['sky', 'badge-dollar-sign'], 'Despacho': ['violet', 'truck'], 'Garantías': ['emerald', 'shield-check'], 'General': ['slate', 'message-square'] };
+const TVARS = ['nombre', 'servicio', 'monto', 'tecnico', 'fecha', 'empresa', 'link'];
+const IXE = {
+  por_responder: ['Por responder', 'rose', 'inbox'],
+  esperando: ['Esperando cliente', 'amber', 'hourglass'],
+  al_dia: ['Al día', 'emerald', 'check-circle-2'],
+  archivado: ['Archivado', 'slate', 'archive']
+};
+const REF = { cli: 'Cliente', par: 'Despacho', gar: 'Garantía' };
+const TPL = [];
+const TS = { missing: false, cat: 'todas', edit: null };
+const IX = {};
+const POP = { el: null, key: null, keys: null, cat: null, timer: null };
+const H = 36e5;
+const TPL_DEMO = [
+  { categoria: 'Ventas', nombre: 'Seguimiento de cotización', texto: 'Hola {nombre}, le escribe {empresa}. ¿Pudo revisar la cotización de {servicio}? Quedo atento a cualquier duda para coordinar.' },
+  { categoria: 'Ventas', nombre: 'Recordatorio de pago', texto: 'Hola {nombre}, le escribe {empresa}. Le recordamos amablemente el balance pendiente de {monto}. ¿Nos confirma cuándo podrá realizar el pago? Gracias.' },
+  { categoria: 'Despacho', nombre: 'Equipo en camino', texto: 'Hola {nombre}, le escribe {empresa}. {tecnico} va en camino para {servicio}. Puede seguir la llegada en vivo aquí: {link}' },
+  { categoria: 'Despacho', nombre: 'Confirmar visita', texto: 'Hola {nombre}, le escribe {empresa}. Le confirmamos su servicio para el {fecha}. ¿Estará disponible para recibirnos?' },
+  { categoria: 'Despacho', nombre: 'Cobro contra entrega', texto: 'Hola {nombre}, le escribe {empresa}. Le recordamos que el monto a pagar al recibir {servicio} es {monto}. Aceptamos efectivo o transferencia.' },
+  { categoria: 'Garantías', nombre: 'Recordatorio de vencimiento', texto: 'Hola {nombre}, le escribe {empresa}. La garantía de su {servicio} vence el {fecha}. Es buen momento para un mantenimiento preventivo. ¿Le agendamos una visita?' },
+  { categoria: 'Garantías', nombre: 'Reclamo recibido', texto: 'Hola {nombre}, recibimos su reporte sobre {servicio}. {tecnico} le visitará para revisarlo. Le avisaremos la hora exacta por aquí.' },
+  { categoria: 'General', nombre: 'Re-contacto amable', texto: 'Hola {nombre}, ¿cómo está? Le escribe {empresa}. Le doy seguimiento a {servicio}. ¿Le puedo ayudar en algo más?', recontacto: true },
+  { categoria: 'General', nombre: 'Agradecimiento', texto: 'Hola {nombre}, gracias por confiar en {empresa}. Quedamos a su orden para lo que necesite.' }
+];
+
+const nowISO = () => new Date().toISOString();
+const hace = d => {
+  const m = Math.round((Date.now() - new Date(d)) / 6e4);
+  if (m < 60) return `hace ${Math.max(1, m)} min`;
+  if (m < 1440) return `hace ${Math.round(m / 60)} h`;
+  return `hace ${Math.round(m / 1440)} d`;
+};
+const cuando = d => new Date(d).toLocaleString('es-DO', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const fillTpl = (txt, v) => String(txt || '').replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
+const tplEnNube = () => typeof DB !== 'undefined' && DB.ready && !TS.missing;
+const sortTpl = () => TPL.sort((a, b) => Object.keys(TCAT).indexOf(a.categoria) - Object.keys(TCAT).indexOf(b.categoria) || a.nombre.localeCompare(b.nombre, 'es'));
+
+function ixSet(key, patch) {
+  const [ref, ...r] = key.split(':');
+  IX[key] = { id: key, ref, rid: r.join(':'), ...(IX[key] || {}), ...patch };
+  updateStatsBanner();
+}
+
+// Datos del registro para reemplazar variables y saber a quién escribir
+function ixCtx(key) {
+  const [ref, rid] = key.split(':');
+  const nom = c => ((c.ct || c.n || '').split(' ')[0]) || c.n;
+  if (ref === 'cli') {
+    const c = CLI.find(x => x.id === rid);
+    if (!c) return null;
+    const ult = (c.h || []).slice().sort((a, b) => b.d.localeCompare(a.d))[0];
+    return { key, ref, cat: 'Ventas', titulo: c.n, sub: c.tp, tel: c.t, f: c.f,
+      vars: { nombre: nom(c), servicio: ult ? ult.c.toLowerCase() : 'nuestros servicios', monto: $m(saldo(c)), tecnico: 'nuestro equipo', fecha: fdate(hoy()), empresa: CE.emp, link: '' } };
+  }
+  if (ref === 'par') {
+    for (const f of F) {
+      const p = f.par.find(x => x.id === rid);
+      if (!p) continue;
+      const c = ptCli(p), lead = f.mem[0];
+      return { key, ref, cat: 'Despacho', titulo: c ? c.n : p.n, sub: `${f.cod} · ${p.t}`, tel: (c && c.t) || p.tel || '', f: c && c.f,
+        vars: { nombre: c ? nom(c) : p.n, servicio: (p.srv || p.t || '').replace(/\.$/, ''), monto: $m(p.monto), tecnico: lead ? lead.n.split(' ')[0] : 'nuestro técnico', fecha: `${fdate(hoy())}${p.h ? ' a las ' + p.h : ''}`, empresa: CE.emp, link: ptLink(p) } };
+    }
+    return null;
+  }
+  if (ref === 'gar') {
+    const g = GAR.find(x => x.id === rid), c = g && garCli(g);
+    if (!g || !c) return null;
+    const tk = garSt(g).tk;
+    return { key, ref, cat: 'Garantías', titulo: c.n, sub: g.prod, tel: c.t, f: c.f, sugerido: garMsg(g),
+      vars: { nombre: nom(c), servicio: g.prod + (g.serie ? ` (${g.serie})` : ''), monto: g.val != null ? $m(g.val) : '', tecnico: tk && tk.f.mem[0] ? tk.f.mem[0].n.split(' ')[0] : 'nuestro técnico', fecha: fdate(g.ven), empresa: CE.emp, link: tk && tk.p ? ptLink(tk.p) : '' } };
+  }
+  return null;
+}
+
+// Una ficha tiene varias paradas: se elige la primera pendiente
+const ficKeys = fid => { const f = F.find(x => x.id === fid); return f ? f.par.map(p => 'par:' + p.id) : []; };
+const ficKey = fid => { const f = F.find(x => x.id === fid); const p = f && (f.par.find(x => x.e !== 'completado') || f.par[0]); return p ? 'par:' + p.id : null; };
+
+function ixPill(key, small = true) {
+  const ix = IX[key];
+  if (!ix || !ix.estado_interaccion) return '';
+  const [l, t, i] = IXE[ix.estado_interaccion];
+  const frio = ix.estado_interaccion === 'esperando' && ix.ultimo_mensaje_fecha && Date.now() - new Date(ix.ultimo_mensaje_fecha) > 24 * H;
+  return `<span class="biz-pill pill-${frio ? 'amber' : t} ${small ? '!text-[10px] !px-2 !py-0.5' : ''}" title="${ix.ultimo_mensaje_fecha ? 'Último mensaje ' + hace(ix.ultimo_mensaje_fecha) : ''}"><i data-lucide="${frio ? 'snowflake' : i}" class="w-3 h-3"></i>${frio ? 'Lead frío' : l}</span>`;
+}
+
+// ---------- Plantillas en Supabase ----------
+async function loadTpl() {
+  const { data, error } = await DB.sb.from('plantillas_mensajes').select('*').eq('empresa_id', DB.emp);
+  if (error) { console.error(error); TS.missing = /plantillas_mensajes|schema cache|does not exist/i.test(error.message); return; }
+  TS.missing = false;
+  replaceArr(TPL, data);
+  sortTpl();
+}
+
+async function tplSeed() {
+  if (!tplEnNube()) { TPL_DEMO.forEach(x => TPL.push({ id: uid(), recontacto: false, ...x })); sortTpl(); return; }
+  const { data, error } = await DB.sb.from('plantillas_mensajes').insert(TPL_DEMO.map(x => ({ recontacto: false, ...x, empresa_id: DB.emp }))).select();
+  if (error) return console.error(error);
+  data.forEach(x => { if (!TPL.some(y => y.id === x.id)) TPL.push(x); });
+  sortTpl();
+}
+
+async function tplSave(row, id) {
+  if (!tplEnNube()) {
+    if (id) Object.assign(TPL.find(x => x.id === id), row); else TPL.push({ id: uid(), ...row });
+    sortTpl();
+    return true;
+  }
+  const q = id
+    ? DB.sb.from('plantillas_mensajes').update(row).eq('id', id).select().single()
+    : DB.sb.from('plantillas_mensajes').insert({ ...row, empresa_id: DB.emp }).select().single();
+  const { data, error } = await q;
+  if (error) { toast('No se pudo guardar la plantilla: ' + error.message, 'rose'); return false; }
+  const i = TPL.findIndex(x => x.id === data.id);
+  if (i >= 0) TPL[i] = data; else TPL.push(data);
+  sortTpl();
+  return true;
+}
+
+function onPlantilla({ eventType, new: nw, old }) {
+  if (eventType === 'DELETE') { const i = TPL.findIndex(x => x.id === old.id); if (i >= 0) TPL.splice(i, 1); }
+  else { const i = TPL.findIndex(x => x.id === nw.id); if (i >= 0) TPL[i] = nw; else TPL.push(nw); sortTpl(); }
+  if ($('#dlg-tpl') && $('#dlg-tpl').open && !TS.edit) renderTplMan();
+}
+
+// ---------- Gestor de plantillas (modal) ----------
+const TPL_MUESTRA = { nombre: 'María', servicio: 'instalación de aire 12K BTU', monto: $m(6500), tecnico: 'Luis', fecha: fdate(hoy()) + ' a las 10:30', empresa: 'Tu empresa', link: 'https://…/#/t/abc123' };
+
+function openTplMan() {
+  TS.edit = null;
+  renderTplMan();
+  if (!$('#dlg-tpl').open) $('#dlg-tpl').showModal();
+}
+
+function renderTplMan() {
+  const body = $('#tpl-body');
+  const head = (t, s) => `
+    <div class="flex items-center justify-between pb-3 border-b border-bizborder">
+      <div><h3 class="text-base font-bold text-bizdark">${t}</h3><p class="text-xs text-bizmuted font-medium">${s}</p></div>
+      <button onclick="$('#dlg-tpl').close()" class="p-1 rounded-lg text-bizmuted hover:text-bizdark"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>`;
+
+  if (TS.edit) {
+    const e = TS.edit;
+    body.innerHTML = `
+      <div class="space-y-4">
+        ${head(e.id ? 'Editar plantilla' : 'Nueva plantilla', 'Las variables se reemplazan solas con los datos de cada ficha')}
+        <label class="block"><span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Nombre</span>
+          <input data-f="tpln" value="${esc(e.nombre)}" placeholder="Ej. Equipo en camino" class="${INP}">
+        </label>
+        <div>
+          <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Categoría</span>
+          <div class="flex gap-2 flex-wrap">${Object.keys(TCAT).map(k => chip(e.categoria === k, `type="button" data-a="tplcat" data-m="${k}"`, `<i data-lucide="${TCAT[k][1]}" class="w-3.5 h-3.5"></i>${k}`)).join('')}</div>
+        </div>
+        <div>
+          <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Mensaje</span>
+          <textarea id="tpl-txt" data-f="tplt" rows="5" class="${INP} resize-none text-[13px]">${esc(e.texto)}</textarea>
+          <div class="flex gap-1.5 flex-wrap mt-2">
+            ${TVARS.map(v => `<button type="button" data-a="tplvar" data-m="${v}" class="px-2.5 py-1 rounded-full bg-bizbg border border-bizborder text-[11px] font-bold text-bizdark hover:bg-bizsubtle font-mono">{${v}}</button>`).join('')}
+          </div>
+        </div>
+        <div>
+          <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Vista previa</span>
+          <p id="tpl-prev" class="p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs text-bizdark whitespace-pre-line">${esc(fillTpl(e.texto, TPL_MUESTRA))}</p>
+        </div>
+        <label class="flex items-center gap-2 text-xs font-semibold text-bizdark cursor-pointer">
+          <input type="checkbox" data-f="tplr" ${e.recontacto ? 'checked' : ''} class="w-4 h-4 accent-[#18191d]">Usar para "Reactivar chat" de leads fríos
+        </label>
+        <div class="flex items-center justify-between pt-3 border-t border-bizborder">
+          <button data-a="tplback" class="px-4 py-2 rounded-full border border-bizborder text-xs font-semibold text-bizmuted hover:text-bizdark">Volver</button>
+          <button data-a="tplsave" class="px-5 py-2 rounded-full bg-bizdark text-white text-xs font-bold shadow-sm hover:bg-neutral-800">Guardar plantilla</button>
+        </div>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const list = TPL.filter(t => TS.cat === 'todas' || t.categoria === TS.cat);
+  body.innerHTML = `
+    <div class="space-y-4">
+      ${head('Biblioteca de mensajes', 'Plantillas para WhatsApp con variables: {nombre} {servicio} {monto} {tecnico} {fecha}')}
+      ${TS.missing ? '<p class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-900">Falta ejecutar <b>supabase/migraciones/003_comunicaciones.sql</b> en Supabase: los cambios en plantillas no se guardan.</p>' : ''}
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex gap-2 flex-wrap">
+          ${chip(TS.cat === 'todas', 'data-a="tplfil" data-m="todas"', `Todas (${TPL.length})`)}
+          ${Object.keys(TCAT).map(k => chip(TS.cat === k, `data-a="tplfil" data-m="${k}"`, `${k} (${TPL.filter(t => t.categoria === k).length})`)).join('')}
+        </div>
+        <button data-a="tplnew" class="${BTN_DARK}"><i data-lucide="plus" class="w-4 h-4"></i>Nueva</button>
+      </div>
+      <div class="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
+        ${list.map(t => `
+          <div class="p-3 rounded-2xl border border-bizborder space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                <span class="text-sm font-bold text-bizdark">${esc(t.nombre)}</span>
+                <span class="biz-pill pill-${TCAT[t.categoria][0]} !text-[10px]">${esc(t.categoria)}</span>
+                ${t.recontacto ? '<span class="biz-pill pill-amber !text-[10px]"><i data-lucide="snowflake" class="w-3 h-3"></i>Re-contacto</span>' : ''}
+              </div>
+              <div class="flex items-center gap-0.5 shrink-0">
+                <button data-a="tpledit" data-id="${t.id}" class="p-1.5 text-bizmuted hover:text-bizdark" title="Editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                <button data-a="tpldel" data-id="${t.id}" class="p-1.5 text-bizmuted hover:text-rose-600" title="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+              </div>
+            </div>
+            <p class="text-xs text-bizmuted line-clamp-2">${esc(t.texto)}</p>
+          </div>`).join('') || '<p class="text-xs text-bizmuted p-4 text-center">No hay plantillas en esta categoría.</p>'}
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+// ---------- Menú flotante de WhatsApp y de recordatorios ----------
+function popEl() {
+  if (!POP.el) {
+    POP.el = document.createElement('div');
+    POP.el.id = 'wa-pop';
+    POP.el.className = 'fixed z-[70] hidden';
+    document.body.appendChild(POP.el);
+  }
+  return POP.el;
+}
+
+function placePop(anchor) {
+  const el = popEl();
+  el.classList.remove('hidden');
+  const r = anchor.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  let top = r.bottom + 6, left = Math.min(r.left, window.innerWidth - w - 12);
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+  el.style.top = top + 'px';
+  el.style.left = Math.max(8, left) + 'px';
+  POP.anchor = anchor;
+}
+
+function closePop() {
+  clearTimeout(POP.timer);
+  if (POP.el) POP.el.classList.add('hidden');
+}
+
+const POP_BOX = 'w-[340px] max-w-[calc(100vw-16px)] bg-white border border-bizborder rounded-2xl shadow-2xl p-3 space-y-3';
+
+function popHead(ctx) {
+  return `
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        ${avatar({ n: ctx.titulo, f: ctx.f }, 'w-9 h-9 text-xs rounded-full')}
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-bizdark truncate">${esc(ctx.titulo)}</p>
+          <p class="text-[11px] text-bizmuted truncate">${REF[ctx.ref]} · ${esc(ctx.sub || '')}${ctx.tel ? ' · ' + esc(ctx.tel) : ''}</p>
+        </div>
+      </div>
+      <button data-a="popx" class="p-1 text-bizmuted hover:text-bizdark shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>`;
+}
+
+function renderWaPop() {
+  const ctx = ixCtx(POP.key);
+  if (!ctx) return closePop();
+  const cat = POP.cat || ctx.cat;
+  const list = TPL.filter(t => cat === 'todas' || t.categoria === cat);
+  const item = (a, id, titulo, txt, extra = '') => `
+    <button data-a="${a}" ${id ? `data-id="${id}"` : ''} class="w-full text-left px-3 py-2 rounded-xl hover:bg-bizbg transition-colors ${ctx.tel ? '' : 'opacity-50 pointer-events-none'}">
+      <span class="flex items-center gap-1.5 text-xs font-bold text-bizdark">${titulo}${extra}</span>
+      <span class="block text-[11px] text-bizmuted line-clamp-2 mt-0.5">${esc(txt)}</span>
+    </button>`;
+  popEl().innerHTML = `
+    <div class="${POP_BOX}">
+      ${popHead(ctx)}
+      ${POP.keys && POP.keys.length > 1 ? `
+        <div class="flex gap-1.5 flex-wrap">${POP.keys.map((k, i) => { const c = ixCtx(k); return c ? `<button data-a="popstop" data-m="${k}" class="px-2.5 py-1 rounded-full text-[11px] font-bold ${k === POP.key ? 'bg-bizdark text-white' : 'bg-bizbg text-bizmuted hover:text-bizdark'}">${i + 1}. ${esc(c.titulo.split(' ').slice(0, 2).join(' '))}</button>` : ''; }).join('')}</div>` : ''}
+      ${IX[POP.key] && IX[POP.key].estado_interaccion ? `<div class="flex items-center gap-2 text-[11px] text-bizmuted">${ixPill(POP.key, false)}${IX[POP.key].ultimo_mensaje_fecha ? `<span>Último mensaje ${hace(IX[POP.key].ultimo_mensaje_fecha)}</span>` : ''}</div>` : ''}
+      <div class="flex gap-1 flex-wrap">
+        ${['todas', ...Object.keys(TCAT)].map(k => `<button data-a="popcat" data-m="${k}" class="px-2.5 py-1 rounded-full text-[11px] font-bold ${k === cat ? 'bg-bizdark text-white' : 'text-bizmuted hover:text-bizdark'}">${k === 'todas' ? 'Todas' : k}</button>`).join('')}
+      </div>
+      ${ctx.tel ? '' : '<p class="text-[11px] font-bold text-rose-600 px-1">Este registro no tiene teléfono de WhatsApp.</p>'}
+      <div class="max-h-[260px] overflow-y-auto -mx-1 px-1 space-y-0.5">
+        ${ctx.sugerido && (cat === ctx.cat || cat === 'todas') ? item('wasend', 'sug', '<i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>Sugerido para este caso', ctx.sugerido) : ''}
+        ${list.map(t => item('wasend', t.id, esc(t.nombre), fillTpl(t.texto, ctx.vars), t.recontacto ? ' <i data-lucide="snowflake" class="w-3 h-3 text-amber-500"></i>' : '')).join('')}
+        ${!list.length ? `<p class="text-[11px] text-bizmuted px-3 py-2">No hay plantillas de ${esc(cat)}.</p>` : ''}
+        ${item('wasend', 'libre', '<i data-lucide="pencil-line" class="w-3.5 h-3.5 text-bizmuted"></i>Mensaje libre', `Hola ${ctx.vars.nombre}, `)}
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-bizborder">
+        <button data-a="ixporr" class="text-[11px] font-bold text-rose-700 hover:underline flex items-center gap-1"><i data-lucide="inbox" class="w-3.5 h-3.5"></i>Cliente escribió · por responder</button>
+        <button data-a="tplman" class="text-[11px] font-bold text-bizmuted hover:text-bizdark flex items-center gap-1"><i data-lucide="settings-2" class="w-3.5 h-3.5"></i>Plantillas</button>
+      </div>
+    </div>`;
+  lucide.createIcons();
+}
+
+// Enviar: abre WhatsApp con las variables reemplazadas y registra el envío
+function waEnviar(key, texto, nombrePlantilla, anchor) {
+  const ctx = ixCtx(key);
+  if (!ctx || !ctx.tel) return toast('Este registro no tiene teléfono de WhatsApp', 'rose');
+  window.open(wlink({ t: ctx.tel }, texto), '_blank', 'noopener');
+  ixSet(key, { estado_interaccion: 'esperando', ultimo_mensaje_fecha: nowISO(), ultimo_mensaje_plantilla: nombrePlantilla, por_responder_desde: null });
+  POP.key = key;
+  popEl().innerHTML = `
+    <div class="${POP_BOX}">
+      ${popHead(ctx)}
+      <p class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4"></i>WhatsApp abierto · ¿cómo quedó la conversación?</p>
+      <div class="grid gap-1.5">
+        <button data-a="ixconf" data-m="esperando" class="w-full text-left px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">📲 Envié mensaje (esperando cliente)</button>
+        <button data-a="ixconf" data-m="al_dia" class="w-full text-left px-3 py-2 rounded-xl hover:bg-emerald-50 border border-bizborder text-xs font-bold text-emerald-800">✅ Cliente respondió / confirmado</button>
+        <button data-a="ixconf" data-m="archivado" class="w-full text-left px-3 py-2 rounded-xl hover:bg-bizbg border border-bizborder text-xs font-bold text-bizmuted">❌ Cancelado / archivado</button>
+      </div>
+      <p class="text-[10px] text-bizmuted">Queda como "Esperando cliente" si no eliges otra opción.</p>
+    </div>`;
+  lucide.createIcons();
+  if (anchor) placePop(anchor);
+  clearTimeout(POP.timer);
+  POP.timer = setTimeout(closePop, 8000);
+  ixRefresh();
+}
+
+function renderSnz() {
+  const ctx = ixCtx(POP.key);
+  if (!ctx) return closePop();
+  const r = IX[POP.key] && IX[POP.key].fecha_recordatorio;
+  const opt = (m, icon, l, sub) => `
+    <button data-a="snzset" data-m="${m}" class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl hover:bg-bizbg text-left">
+      <span class="flex items-center gap-2 text-xs font-bold text-bizdark"><i data-lucide="${icon}" class="w-4 h-4 text-bizmuted"></i>${l}</span>
+      <span class="text-[11px] text-bizmuted">${sub}</span>
+    </button>`;
+  const manana = new Date(); manana.setDate(manana.getDate() + 1); manana.setHours(8, 0, 0, 0);
+  popEl().innerHTML = `
+    <div class="${POP_BOX}">
+      ${popHead(ctx)}
+      <p class="text-[11px] font-bold text-bizmuted uppercase tracking-wider">⏰ Recordarme</p>
+      ${r ? `<p class="text-[11px] font-semibold text-violet-700 px-1">Recordatorio actual: ${cuando(r)}</p>` : ''}
+      <div class="space-y-0.5">
+        ${opt('2h', 'clock-2', 'En 2 horas', cuando(Date.now() + 2 * H).split(',').pop())}
+        ${opt('manana', 'sunrise', 'Mañana 8:00 a. m.', cuando(manana).split(',')[0])}
+        ${opt('3d', 'calendar-days', 'En 3 días', cuando(Date.now() + 72 * H).split(',')[0])}
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="snz-dt" type="datetime-local" class="flex-1 min-w-0 bg-bizbg border border-bizborder rounded-xl px-2.5 py-1.5 text-xs font-semibold text-bizdark">
+        <button data-a="snzset" data-m="custom" class="${BTN_MINI}">Guardar</button>
+      </div>
+      ${r ? '<button data-a="snzclr" class="w-full text-[11px] font-bold text-rose-600 hover:underline">Quitar recordatorio</button>' : ''}
+    </div>`;
+  lucide.createIcons();
+}
+
+// ---------- Widget del Dashboard ----------
+function ixListas() {
+  const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999);
+  const todos = Object.values(IX).map(ix => ({ ix, ctx: ixCtx(ix.id) })).filter(x => x.ctx);
+  return {
+    rec: todos.filter(({ ix }) => ix.fecha_recordatorio && new Date(ix.fecha_recordatorio) <= fin)
+      .sort((a, b) => a.ix.fecha_recordatorio.localeCompare(b.ix.fecha_recordatorio)),
+    inc: todos.filter(({ ix }) => ix.estado_interaccion === 'por_responder')
+      .sort((a, b) => (a.ix.por_responder_desde || '').localeCompare(b.ix.por_responder_desde || '')),
+    frio: todos.filter(({ ix }) => ix.estado_interaccion === 'esperando' && ix.ultimo_mensaje_fecha && now - new Date(ix.ultimo_mensaje_fecha) > 24 * H)
+      .sort((a, b) => a.ix.ultimo_mensaje_fecha.localeCompare(b.ix.ultimo_mensaje_fecha))
+  };
+}
+
+function ixWidget() {
+  const { rec, inc, frio } = ixListas(), now = Date.now();
+  const fila = ({ ix, ctx }, badge, acciones) => `
+    <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-bizbg">
+      <div class="flex items-center gap-2.5 min-w-0">
+        ${avatar({ n: ctx.titulo, f: ctx.f }, 'w-8 h-8 text-[11px] rounded-full')}
+        <div class="min-w-0">
+          <p class="text-xs font-bold text-bizdark truncate">${esc(ctx.titulo)}</p>
+          <p class="text-[11px] text-bizmuted truncate">${REF[ctx.ref]} · ${esc(ctx.vars.servicio || ctx.sub || '')}</p>
+          <div class="mt-1">${badge}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">${acciones}</div>
+    </div>`;
+  const waBtn = (k, l) => `<button data-a="wapop" data-k="${k}" class="px-2.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 whitespace-nowrap"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>${l}</button>`;
+  const col = (icon, titulo, sub, tone, items, vacio) => `
+    <div class="biz-card p-5 space-y-3">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <h3 class="text-sm font-bold text-bizdark">${icon} ${titulo}</h3>
+          <p class="text-[11px] text-bizmuted font-medium">${sub}</p>
+        </div>
+        <span class="biz-pill pill-${items.length ? tone : 'emerald'}">${items.length}</span>
+      </div>
+      <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1">${items.join('') || `<p class="text-xs text-bizmuted p-3 rounded-2xl bg-bizbg flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>${vacio}</p>`}</div>
+    </div>`;
+
+  return `
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      ${col('📌', 'Recordatorios del día', 'Seguimientos que programaste para hoy', 'violet', rec.map(x => {
+        const vencido = new Date(x.ix.fecha_recordatorio) <= now;
+        return fila(x, `<span class="biz-pill ${vencido ? 'pill-violet' : 'pill-slate'} !text-[10px] !px-2 !py-0.5"><i data-lucide="alarm-clock" class="w-3 h-3"></i>${vencido ? 'Ahora · ' : ''}${new Date(x.ix.fecha_recordatorio).toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' })}</span>`,
+          waBtn(x.ix.id, 'WhatsApp') +
+          `<button data-a="snzday" data-k="${x.ix.id}" class="p-1.5 text-bizmuted hover:text-bizdark" title="Snooze +1 día"><i data-lucide="alarm-clock-plus" class="w-4 h-4"></i></button>` +
+          `<button data-a="snzclr" data-k="${x.ix.id}" class="p-1.5 text-bizmuted hover:text-emerald-600" title="Listo"><i data-lucide="check" class="w-4 h-4"></i></button>`);
+      }), 'Sin recordatorios para hoy')}
+      ${col('🔴', 'Atención incompleta', 'Nosotros no hemos escrito', 'rose', inc.map(x => {
+        const t = x.ix.por_responder_desde, tarde = t && now - new Date(t) > 2 * H;
+        return fila(x, `<span class="biz-pill ${tarde ? 'pill-rose' : 'pill-amber'} !text-[10px] !px-2 !py-0.5"><i data-lucide="inbox" class="w-3 h-3"></i>${tarde ? 'Atrasado · ' : ''}${t ? hace(t) : 'pendiente'}</span>`, waBtn(x.ix.id, 'Responder ahora'));
+      }), 'Todo respondido')}
+      ${col('🟡', 'Leads fríos', 'El cliente no responde hace +24 h', 'amber', frio.map(x => {
+        const h = (now - new Date(x.ix.ultimo_mensaje_fecha)) / H;
+        return fila(x, `<span class="biz-pill ${h > 48 ? 'pill-rose' : 'pill-amber'} !text-[10px] !px-2 !py-0.5"><i data-lucide="snowflake" class="w-3 h-3"></i>Sin respuesta ${hace(x.ix.ultimo_mensaje_fecha)}</span>`,
+          `<button data-a="wareact" data-k="${x.ix.id}" class="px-2.5 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold flex items-center gap-1 whitespace-nowrap" title="Envía la plantilla de re-contacto"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>Reactivar chat</button>` +
+          `<button data-a="wapop" data-k="${x.ix.id}" class="p-1.5 text-bizmuted hover:text-bizdark" title="Elegir otra plantilla"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>`);
+      }), 'Ningún chat frío')}
+    </div>`;
+}
+
+const ixPendientes = () => { const { rec, inc, frio } = ixListas(); return rec.filter(x => new Date(x.ix.fecha_recordatorio) <= Date.now()).length + inc.length + frio.length; };
+// Vuelve a dibujar lo visible que muestra estados de chat
+function ixRefresh() {
+  updateStatsBanner();
+  if (STATE.view === 'ini') renderInicio();
+  else if (STATE.view === 'cli') renderClientes();
+  else if (STATE.view === 'gar') renderGarList();
+  else if (STATE.view === 'desp') renderDespacho();
+  else if (STATE.view === 'msg') renderMensajes();
+}
+// Al cerrar el gestor de plantillas, actualizar la sección de mensajes
+$('#dlg-tpl').addEventListener('close', () => { TS.edit = null; if (STATE.view === 'msg') renderMensajes(); });
+
+Object.assign(ACT, {
+  tplman: () => { closePop(); openTplMan(); },
+  tplfil: t => { TS.cat = t.dataset.m; renderTplMan(); },
+  tplnew: () => {
+    TS.edit = { nombre: '', categoria: TS.cat !== 'todas' ? TS.cat : 'General', texto: 'Hola {nombre}, ', recontacto: false };
+    renderTplMan();
+    if (!$('#dlg-tpl').open) $('#dlg-tpl').showModal();
+    $('[data-f="tpln"]').focus();
+  },
+  tpledit: t => { TS.edit = { ...TPL.find(x => x.id === t.dataset.id) }; renderTplMan(); if (!$('#dlg-tpl').open) $('#dlg-tpl').showModal(); },
+  tplback: () => { TS.edit = null; renderTplMan(); },
+  tplcat: t => { TS.edit.categoria = t.dataset.m; renderTplMan(); },
+  tplvar: t => {
+    const ta = $('#tpl-txt'), v = `{${t.dataset.m}}`, s = ta.selectionStart ?? ta.value.length;
+    ta.value = ta.value.slice(0, s) + v + ta.value.slice(ta.selectionEnd ?? s);
+    ta.focus(); ta.selectionStart = ta.selectionEnd = s + v.length;
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  },
+  tplsave: async t => {
+    const e = TS.edit;
+    if (!e.nombre.trim() || !e.texto.trim()) return toast('Escribe el nombre y el mensaje', 'rose');
+    t.disabled = true;
+    const ok = await tplSave({ nombre: e.nombre.trim(), categoria: e.categoria, texto: e.texto.trim(), recontacto: !!e.recontacto }, e.id);
+    t.disabled = false;
+    if (!ok) return;
+    TS.edit = null; renderTplMan(); toast('Plantilla guardada');
+  },
+  tpldel: async t => {
+    const p = TPL.find(x => x.id === t.dataset.id);
+    if (!p) return;
+    if (tplEnNube()) { const { error } = await DB.sb.from('plantillas_mensajes').delete().eq('id', p.id); if (error) return toast('No se pudo eliminar: ' + error.message, 'rose'); }
+    TPL.splice(TPL.indexOf(p), 1);
+    renderTplMan();
+    toastUndo(`Plantilla "${p.nombre}" eliminada`, async () => {
+      if (tplEnNube()) {
+        const { error } = await DB.sb.from('plantillas_mensajes').insert(p);
+        if (error) return toast('No se pudo restaurar: ' + error.message, 'rose');
+      }
+      if (!TPL.some(x => x.id === p.id)) TPL.push(p);
+      sortTpl();
+      if ($('#dlg-tpl').open) renderTplMan();
+      if (STATE.view === 'msg') renderMensajes();
+    });
+  },
+
+  wapop: t => {
+    const k = t.dataset.k;
+    if (k.startsWith('fic:')) { POP.keys = ficKeys(k.slice(4)); POP.key = ficKey(k.slice(4)); }
+    else { POP.keys = null; POP.key = k; }
+    if (!POP.key) return toast('Esta ficha no tiene paradas', 'rose');
+    POP.cat = null;
+    clearTimeout(POP.timer);
+    renderWaPop(); placePop(t);
+  },
+  popx: () => closePop(),
+  popcat: t => { POP.cat = t.dataset.m; renderWaPop(); },
+  popstop: t => { POP.key = t.dataset.m; renderWaPop(); },
+  wasend: t => {
+    const ctx = ixCtx(POP.key), id = t.dataset.id;
+    const tpl = TPL.find(x => x.id === id);
+    const texto = id === 'sug' ? ctx.sugerido : id === 'libre' ? `Hola ${ctx.vars.nombre}, ` : fillTpl(tpl.texto, ctx.vars);
+    waEnviar(POP.key, texto, id === 'sug' ? 'Sugerido' : id === 'libre' ? 'Mensaje libre' : tpl.nombre, POP.anchor);
+  },
+  wareact: t => {
+    const k = t.dataset.k, ctx = ixCtx(k);
+    const tpl = TPL.find(x => x.recontacto) || TPL.find(x => x.categoria === 'General');
+    if (!tpl) return ACT.wapop(t);
+    POP.keys = null;
+    waEnviar(k, fillTpl(tpl.texto, ctx.vars), tpl.nombre, t);
+  },
+  ixconf: t => {
+    const m = t.dataset.m;
+    ixSet(POP.key, { estado_interaccion: m });
+    closePop(); ixRefresh();
+    toast({ esperando: 'Marcado: esperando al cliente', al_dia: 'Marcado: al día', archivado: 'Conversación archivada' }[m]);
+  },
+  ixporr: () => {
+    ixSet(POP.key, { estado_interaccion: 'por_responder', por_responder_desde: nowISO() });
+    closePop(); ixRefresh(); toast('Marcado: por responder (aparece en el Dashboard)');
+  },
+
+  snz: t => {
+    const k = t.dataset.k;
+    POP.keys = null;
+    POP.key = k.startsWith('fic:') ? ficKey(k.slice(4)) : k;
+    if (!POP.key) return toast('Esta ficha no tiene paradas', 'rose');
+    clearTimeout(POP.timer);
+    renderSnz(); placePop(t);
+  },
+  snzset: t => {
+    const m = t.dataset.m, d = new Date();
+    if (m === '2h') d.setTime(d.getTime() + 2 * H);
+    else if (m === 'manana') { d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); }
+    else if (m === '3d') d.setDate(d.getDate() + 3);
+    else {
+      const v = $('#snz-dt').value;
+      if (!v) return toast('Elige la fecha y hora', 'rose');
+      d.setTime(new Date(v).getTime());
+    }
+    ixSet(POP.key, { fecha_recordatorio: d.toISOString() });
+    closePop(); ixRefresh(); toast(`⏰ Te lo recuerdo el ${cuando(d)}`);
+  },
+  snzday: t => {
+    const k = t.dataset.k;
+    ixSet(k, { fecha_recordatorio: new Date(Date.now() + 24 * H).toISOString() });
+    ixRefresh(); toast('Pospuesto 1 día');
+  },
+  snzclr: t => {
+    const k = t.dataset.k || POP.key;
+    ixSet(k, { fecha_recordatorio: null });
+    closePop(); ixRefresh(); toast('Recordatorio completado');
+  }
+});
+
+Object.assign(FLD, {
+  tpln: el => { TS.edit.nombre = el.value; },
+  tplt: el => { TS.edit.texto = el.value; $('#tpl-prev').textContent = fillTpl(el.value, TPL_MUESTRA); },
+  tplr: el => { TS.edit.recontacto = el.checked; }
+});
+
+// Cerrar el menú flotante al hacer clic fuera o con Escape
+document.addEventListener('click', e => {
+  if (!POP.el || POP.el.classList.contains('hidden')) return;
+  if (!document.contains(e.target) || POP.el.contains(e.target) || e.target.closest('[data-a="wapop"], [data-a="snz"], [data-a="wareact"]')) return;
+  closePop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+window.addEventListener('resize', closePop);
+// Las listas del Dashboard dependen de la hora: se refrescan cada minuto
+setInterval(() => { updateStatsBanner(); if (STATE.view === 'ini' && !(POP.el && !POP.el.classList.contains('hidden'))) renderInicio(); }, 60000);
+
+// ================= VISTA: MENSAJES & SEGUIMIENTO =================
+const MS = { f: 'todos' };
+const MSF = {
+  todos: ['Todos', () => true],
+  por_responder: ['Por responder', ix => ix.estado_interaccion === 'por_responder'],
+  esperando: ['Esperando cliente', ix => ix.estado_interaccion === 'esperando'],
+  al_dia: ['Al día', ix => ix.estado_interaccion === 'al_dia'],
+  archivado: ['Archivados', ix => ix.estado_interaccion === 'archivado'],
+  rec: ['Con recordatorio', ix => !!ix.fecha_recordatorio]
+};
+
+function renderMensajes() {
+  const container = $('#msg-content');
+  if (!container) return;
+  const act = ix => ix.ultimo_mensaje_fecha || ix.por_responder_desde || ix.fecha_recordatorio || '';
+  const chats = Object.values(IX).map(ix => ({ ix, ctx: ixCtx(ix.id) })).filter(x => x.ctx && (x.ix.estado_interaccion || x.ix.fecha_recordatorio));
+  const lista = chats.filter(x => MSF[MS.f][1](x.ix)).sort((a, b) => act(b.ix).localeCompare(act(a.ix)));
+
+  container.innerHTML = `
+    ${ixWidget()}
+
+    <div class="biz-card p-6 space-y-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 class="text-base font-bold text-bizdark">Todas las conversaciones</h2>
+          <p class="text-xs text-bizmuted font-medium">Clientes, despachos y garantías a los que les escribiste desde BizLink</p>
+        </div>
+        <div class="flex gap-1.5 flex-wrap">
+          ${Object.entries(MSF).map(([k, [l, fn]]) => chip(MS.f === k, `data-a="msfil" data-m="${k}"`, `${l} (${chats.filter(x => fn(x.ix)).length})`)).join('')}
+        </div>
+      </div>
+      <div class="divide-y divide-bizborder">
+        ${lista.map(({ ix, ctx }) => `
+          <div class="flex items-center justify-between gap-3 py-3 flex-wrap">
+            <div class="flex items-center gap-3 min-w-0">
+              ${avatar({ n: ctx.titulo, f: ctx.f }, 'w-9 h-9 text-xs rounded-full')}
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-bizdark truncate">${esc(ctx.titulo)}</p>
+                <p class="text-[11px] text-bizmuted truncate">${REF[ctx.ref]} · ${esc(ctx.vars.servicio || ctx.sub || '')}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              ${ixPill(ix.id)}
+              ${ix.ultimo_mensaje_fecha ? `<span class="text-[11px] text-bizmuted font-semibold" title="${esc(ix.ultimo_mensaje_plantilla || '')}">Último mensaje ${hace(ix.ultimo_mensaje_fecha)}</span>` : ''}
+              ${ix.fecha_recordatorio ? `<span class="biz-pill pill-violet !text-[10px] !px-2 !py-0.5"><i data-lucide="alarm-clock" class="w-3 h-3"></i>${cuando(ix.fecha_recordatorio)}</span>` : ''}
+              <button data-a="wapop" data-k="${ix.id}" class="px-2.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>WhatsApp</button>
+              <button data-a="snz" data-k="${ix.id}" class="p-1.5 text-bizmuted hover:text-violet-600" title="⏰ Recordar"><i data-lucide="alarm-clock" class="w-4 h-4"></i></button>
+            </div>
+          </div>`).join('') || `
+          <div class="py-10 text-center space-y-2">
+            <i data-lucide="messages-square" class="w-8 h-8 mx-auto text-bizmuted"></i>
+            <p class="text-sm font-semibold text-bizmuted">${chats.length ? 'No hay conversaciones con este filtro.' : 'Todavía no hay conversaciones registradas.'}</p>
+            ${chats.length ? '' : '<p class="text-xs text-bizmuted">Usa el botón verde de WhatsApp en Clientes, Despacho o Garantías: cada envío queda registrado aquí.</p>'}
+          </div>`}
+      </div>
+    </div>
+
+    <div class="biz-card p-6 space-y-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 class="text-base font-bold text-bizdark">Biblioteca de mensajes</h2>
+          <p class="text-xs text-bizmuted font-medium">Variables que se completan solas: <span class="font-mono">{nombre} {servicio} {monto} {tecnico} {fecha} {link}</span></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button data-a="tplman" class="${BTN}"><i data-lucide="settings-2" class="w-3.5 h-3.5 text-bizmuted"></i>Gestionar</button>
+          <button data-a="tplnew" class="${BTN_DARK}"><i data-lucide="plus" class="w-4 h-4"></i>Nueva plantilla</button>
+        </div>
+      </div>
+      ${TS.missing ? '<p class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-900">Falta ejecutar <b>supabase/migraciones/003_comunicaciones.sql</b> en Supabase: estas plantillas son de ejemplo y los cambios no se guardan.</p>' : ''}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        ${TPL.map(t => `
+          <button data-a="tpledit" data-id="${t.id}" class="text-left p-4 rounded-2xl border border-bizborder hover:border-bizmuted hover:bg-bizbg/60 transition-all space-y-1.5">
+            <span class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-sm font-bold text-bizdark">${esc(t.nombre)}</span>
+              <span class="biz-pill pill-${TCAT[t.categoria][0]} !text-[10px]">${esc(t.categoria)}</span>
+              ${t.recontacto ? '<span class="biz-pill pill-amber !text-[10px]"><i data-lucide="snowflake" class="w-3 h-3"></i>Re-contacto</span>' : ''}
+            </span>
+            <span class="block text-xs text-bizmuted line-clamp-3">${esc(t.texto)}</span>
+          </button>`).join('') || '<p class="text-xs text-bizmuted">No hay plantillas. Crea la primera.</p>'}
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// ================= DATOS DE EJEMPLO PARA MÓDULOS VACÍOS =================
+const MODS_VACIOS = () => [
+  ['Clientes', CLI], ['Despacho', F], ['Personal', PER], ['Vehículos', VEH], ['Garantías', GAR],
+  ['Catálogo', CAT], ['Plantillas', TPL], ['Contratistas', CON], ['Proveedores', PROV], ['Inventario', ART]
+].filter(([, a]) => !a.length).map(([n]) => n);
+
+function demoBanner() {
+  const v = MODS_VACIOS();
+  if (!v.length) return '';
+  return `
+    <div class="biz-card p-5 flex items-center justify-between gap-4 flex-wrap border-dashed !border-violet-300 bg-violet-50/40">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+        <div>
+          <h3 class="text-sm font-bold text-bizdark">Hay módulos sin datos</h3>
+          <p class="text-xs text-bizmuted font-medium mt-0.5">Vacíos: <b class="text-bizdark">${v.join(', ')}</b>. Carga ejemplos para ver cómo funciona cada sección; puedes borrarlos cuando quieras.</p>
+        </div>
+      </div>
+      <button data-a="demoload" class="${BTN_DARK}"><i data-lucide="sparkles" class="w-4 h-4"></i>Cargar datos de ejemplo</button>
+    </div>`;
+}
+
+Object.assign(ACT, {
+  msfil: t => { MS.f = t.dataset.m; renderMensajes(); },
+  demoload: async t => {
+    t.disabled = true;
+    const antes = MODS_VACIOS();
+    for (const tipo of COL_ORDEN) {
+      if (SEMILLA[tipo] && !COL[tipo].get().length) {
+        COL[tipo].set(JSON.parse(JSON.stringify(SEMILLA[tipo])));
+        // Enlaces de cliente nuevos y únicos para las fichas de ejemplo
+        if (tipo === 'fichas') F.forEach(f => f.par.forEach(p => { p.tok = rtok(); }));
+      }
+    }
+    // Garantías de ejemplo solo de clientes que existen
+    replaceArr(GAR, GAR.filter(g => CLI.some(c => c.id === g.cli)));
+    if (!CAT.length) await catSeed();
+    if (!TPL.length) await tplSeed();
+    CE.catSeeded = CE.tplSeeded = true;
+    queueSave();
+    rerenderAll();
+    toast(`Datos de ejemplo cargados en: ${antes.join(', ')}`);
+  }
+});
+
 // ================= SUPABASE: PERSISTENCIA, LOGIN Y TIEMPO REAL =================
 // La clave "anon" es pública por diseño: la seguridad la dan las políticas RLS (ver supabase/schema.sql).
 const SB_URL = 'https://jhmvliungidqdojsaamy.supabase.co';
@@ -3250,6 +3981,10 @@ const COL = {
   proveedores: { get: () => PROV, set: d => replaceArr(PROV, d) },
   articulos: { get: () => ART, set: d => replaceArr(ART, d) },
   garantias: { get: () => GAR, set: d => replaceArr(GAR, d) },
+  interacciones: {
+    get: () => Object.values(IX),
+    set: d => { Object.keys(IX).forEach(k => delete IX[k]); d.forEach(x => { IX[x.id] = x; }); }
+  },
   movimientos: { get: () => LOG, set: d => replaceArr(LOG, d.sort((a, b) => (b.d + (b.h || '')).localeCompare(a.d + (a.h || '')))) },
   asistencia: {
     get: () => Object.entries(REG).map(([id, r]) => ({ id, ex: r.ex, fa: r.fa })),
@@ -3275,7 +4010,10 @@ const COL = {
     set: d => { if (d[0]) { const { id, ...rest } = d[0]; Object.assign(CE, rest); } }
   }
 };
-const COL_ORDEN = ['personal', 'vehiculos', 'clientes', 'contratistas', 'proveedores', 'articulos', 'movimientos', 'asistencia', 'pizarras', 'fichas', 'garantias', 'config'];
+const COL_ORDEN = ['personal', 'vehiculos', 'clientes', 'contratistas', 'proveedores', 'articulos', 'movimientos', 'asistencia', 'pizarras', 'fichas', 'garantias', 'interacciones', 'config'];
+// Copia de los datos de ejemplo (antes de cargar los de Supabase) para "Cargar datos de ejemplo"
+const SEMILLA = Object.fromEntries(COL_ORDEN.filter(t => !['config', 'interacciones'].includes(t))
+  .map(t => [t, JSON.parse(JSON.stringify(COL[t].get()))]));
 
 function setSync(state, msg = '') {
   const el = $('#sync-status');
@@ -3394,7 +4132,7 @@ function applyAll(rows) {
   if (!by.garantias) CLI.forEach(c => (c.eq || []).forEach(e => GAR.push({ id: e.id, cli: c.id, prod: e.n + (e.mm ? ' · ' + e.mm : ''), serie: '', ini: e.i, ven: e.g, per: '', tk: [] })));
 }
 
-const RENDER = { desp: () => renderDespacho(), ini: () => renderInicio(), cli: () => renderClientes(), plan: () => renderPlan(), hor: () => renderHoras(), eq: () => renderEquipos(), con: () => renderContratistas(), prov: () => renderProveedores(), gar: () => renderGarantias(), cat: () => renderCatalogo() };
+const RENDER = { desp: () => renderDespacho(), ini: () => renderInicio(), cli: () => renderClientes(), plan: () => renderPlan(), hor: () => renderHoras(), eq: () => renderEquipos(), con: () => renderContratistas(), prov: () => renderProveedores(), gar: () => renderGarantias(), cat: () => renderCatalogo(), msg: () => renderMensajes() };
 let rerenderT = null;
 function rerenderAll() {
   clearTimeout(rerenderT);
@@ -3453,6 +4191,9 @@ function subscribeRealtime() {
     .subscribe();
   DB.sb.channel('seguimiento-clientes')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'seguimiento', filter }, onCliente)
+    .subscribe();
+  if (!TS.missing) DB.sb.channel('plantillas-cambios')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'plantillas_mensajes', filter }, onPlantilla)
     .subscribe();
   if (!KS.missing) DB.sb.channel('catalogo-cambios')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'catalogo_servicios', filter }, onCatalogo)
@@ -3586,20 +4327,29 @@ async function miEmpresa(session) {
 async function dbBoot(session) {
   DB.uid = session.user.id;
   DB.email = session.user.email;
-  showLogin('Cargando datos de la empresa…', true);
+  // Carga accesible: la app se ve con un skeleton y aria-busy, en vez de una pantalla en blanco
+  hideLogin();
+  mostrarCargando(true);
   try {
     const yo = await miEmpresa(session);
     DB.emp = yo.empresa_id;
     const empNombre = (yo.empresas && yo.empresas.nombre) || '';
     const rows = await fetchAll();
-    await loadCatalog();
+    await Promise.all([loadCatalog(), loadTpl()]);
     if (rows.length) applyAll(rows);
     else {
       prepararSemilla();
-      if (!KS.missing && !CAT.length) await catSeed();
+      if (!KS.missing && !CAT.length) { DB.ready = true; await catSeed(); }
+      CE.catSeeded = true;
       if (empNombre) CE.emp = empNombre;
       toast(`Bienvenido. Cargamos datos de ejemplo para que veas cómo funciona ${empNombre || 'tu espacio'}.`);
     }
+    // Plantillas de ejemplo una sola vez por empresa (si luego las borras, no vuelven)
+    if (!TS.missing && !TPL.length && !CE.tplSeeded) { DB.ready = true; await tplSeed(); CE.tplSeeded = true; }
+    // Empresas que existían antes del catálogo: ejemplos una sola vez (si luego los borras, no vuelven)
+    if (!KS.missing && !CAT.length && !CE.catSeeded) { DB.ready = true; await catSeed(); CE.catSeeded = true; }
+    // Sin la tabla (migración 003 pendiente): plantillas de ejemplo en memoria para no dejar el menú vacío
+    if (TS.missing && !TPL.length) tplSeed();
     DB.ready = true;
     const nm = $('#user-name'), rl = $('#user-role'), av = $('#user-ini');
     const quien = yo.nombre || (session.user.user_metadata || {}).nombre || DB.email.split('@')[0];
@@ -3607,18 +4357,20 @@ async function dbBoot(session) {
     if (rl) rl.textContent = (empNombre || DB.email || '') + (session.user.is_anonymous ? ' · invitado' : '');
     if (av) av.textContent = ini(quien);
     hideLogin();
+    mostrarCargando(false);
     rerenderAll();
     subscribeRealtime();
     await flush();
   } catch (e) {
     console.error(e);
+    mostrarCargando(false, true);
     const falta = /relation .* does not exist|Could not find the (table|function)|schema cache/i.test(e.message || '');
     showLogin(falta ? 'Falta crear las tablas: ejecuta supabase/schema.sql en el SQL Editor de Supabase.' : 'No se pudo cargar: ' + (e.message || e));
   }
 }
 
 async function dbStart() {
-  if (!DB.on) { catSeed(); return setSync('demo', 'Sin conexión a Supabase: los datos no se guardan'); }
+  if (!DB.on) { catSeed(); tplSeed(); return setSync('demo', 'Sin conexión a Supabase: los datos no se guardan'); }
   const { data: { session } } = await DB.sb.auth.getSession();
   if (session) dbBoot(session); else showLogin();
 }
@@ -4303,7 +5055,7 @@ function switchView(viewName) {
   VW.v = viewName;
 
   // Toggle view containers
-  const views = ['desp', 'ini', 'cli', 'gar', 'cat', 'plan', 'hor', 'eq', 'con', 'prov'];
+  const views = ['desp', 'ini', 'cli', 'gar', 'cat', 'msg', 'plan', 'hor', 'eq', 'con', 'prov'];
   views.forEach(v => {
     const el = $(`#view-${v}`);
     if (el) el.style.display = (v === viewName) ? '' : 'none';
@@ -4352,6 +5104,9 @@ function switchView(viewName) {
     } else if (viewName === 'cat') {
       label.textContent = '+ Nuevo Ítem';
       btn.dataset.a = 'catnew';
+    } else if (viewName === 'msg') {
+      label.textContent = '+ Nueva Plantilla';
+      btn.dataset.a = 'tplnew';
     } else {
       label.textContent = '+ Agregar';
       btn.dataset.a = 'wiz';
@@ -4369,6 +5124,7 @@ function switchView(viewName) {
   else if (viewName === 'plan') renderPlan();
   else if (viewName === 'gar') renderGarantias();
   else if (viewName === 'cat') renderCatalogo();
+  else if (viewName === 'msg') renderMensajes();
 
   updateStatsBanner();
 }
@@ -4460,11 +5216,18 @@ document.addEventListener('click', e => {
 
   // Eliminar ficha
   if (action === 'del') {
-    if (confirm('¿Eliminar esta ficha de despacho?')) {
-      F = F.filter(x => x.id !== id);
+    // Sin confirmación bloqueante: se elimina y se ofrece "Deshacer" unos segundos
+    const i = F.findIndex(x => x.id === id);
+    if (i >= 0) {
+      const [quitada] = F.splice(i, 1);
       STATE.activeMenu = null;
       renderDespacho();
       updateStatsBanner();
+      toastUndo(`Ficha ${quitada.cod} eliminada`, () => {
+        F.splice(Math.min(i, F.length), 0, quitada);
+        renderDespacho();
+        updateStatsBanner();
+      });
     }
     return;
   }
@@ -4664,6 +5427,8 @@ window.handleWizardNext = function() {
     };
     LN.lines = w.it;
     lnApply(newFicha.par[0]);
+    // Ficha nueva: hay que avisarle al cliente → "Atención incompleta" hasta que se le escriba
+    ixSet('par:' + newFicha.par[0].id, { estado_interaccion: 'por_responder', por_responder_desde: nowISO() });
 
     F.push(newFicha);
     $('#dlg-wiz').close();

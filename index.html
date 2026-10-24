@@ -4,7 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BizLink · Sistema de Despacho & Gestión Operativa</title>
-  
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f4ef">
+
+  <!-- Tema claro/oscuro ANTES de pintar: evita el parpadeo (FOUC).
+       Preferencia guardada en localStorage: 'light' | 'dark' | 'system' (sigue al sistema operativo). -->
+  <script>
+    (function () {
+      var t = 'system';
+      try { t = localStorage.getItem('bizlink-tema') || 'system'; } catch (e) {}
+      var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    })();
+  </script>
+
   <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,14 +28,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      // Modo oscuro por clase en <html> (la pone el script de arriba o el botón de tema)
+      darkMode: 'class',
       theme: {
         extend: {
+          // Colores de marca como variables CSS (definidas en styles.css para claro y oscuro)
           colors: {
-            bizbg: '#f5f4ef',
-            bizdark: '#18191d',
-            bizsubtle: '#ebeae4',
-            bizborder: '#e4e2d9',
-            bizmuted: '#71737c',
+            bizbg: 'rgb(var(--c-bg) / <alpha-value>)',
+            bizdark: 'rgb(var(--c-ink) / <alpha-value>)',
+            bizsubtle: 'rgb(var(--c-subtle) / <alpha-value>)',
+            bizborder: 'rgb(var(--c-border) / <alpha-value>)',
+            bizmuted: 'rgb(var(--c-muted) / <alpha-value>)',
           },
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
@@ -41,9 +58,14 @@
 </head>
 <body class="bg-bizbg text-bizdark min-h-screen flex antialiased select-none">
 
+  <!-- Accesibilidad: saltar directo al contenido con el teclado (primer Tab) -->
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
   <!-- ================= SIDEBAR (BizLink Style) ================= -->
   <aside class="w-64 bg-white border-r border-bizborder flex flex-col justify-between h-screen sticky top-0 z-30 shrink-0 hidden md:flex">
-    <div class="p-6 pb-2">
+    <!-- Con scroll propio: en pantallas bajas todas las secciones siguen accesibles -->
+    <div class="p-6 pb-2 flex-1 min-h-0 overflow-y-auto">
+
       <!-- Logo -->
       <div class="flex items-center gap-3 mb-8">
         <div class="w-9 h-9 rounded-xl bg-bizdark text-white flex items-center justify-center font-bold text-lg shadow-sm">
@@ -56,31 +78,31 @@
       </div>
 
       <!-- Main Navigation -->
-      <nav class="space-y-1" id="sidebar-nav">
-        <button data-a="vw" data-m="ini" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+      <nav class="space-y-1" id="sidebar-nav" aria-label="Secciones principales">
+        <button data-a="vw" data-m="ini" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
             <span>Dashboard</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="desp" class="sidebar-item active w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizdark bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="desp" class="sidebar-item active w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizdark bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="truck" class="w-4 h-4"></i>
             <span>Despacho & Rutas</span>
           </div>
           <span class="text-xs bg-bizdark text-white font-medium px-2 py-0.5 rounded-full" id="side-active-count">0</span>
         </button>
 
-        <button data-a="vw" data-m="cli" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="cli" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="users" class="w-4 h-4"></i>
             <span>Clientes (CRM)</span>
           </div>
           <span class="text-xs text-bizmuted font-semibold" id="side-cli-count">6</span>
         </button>
 
-        <button data-a="vw" data-m="gar" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+        <button data-a="vw" data-m="gar" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
           <div class="flex items-center gap-3 whitespace-nowrap">
             <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
             <span>Garantías & Postventa</span>
@@ -88,43 +110,53 @@
           <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0 hidden" id="side-gar-count"></span>
         </button>
 
-        <button data-a="vw" data-m="cat" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+        <button data-a="vw" data-m="cat" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
           <div class="flex items-center gap-3 whitespace-nowrap">
             <i data-lucide="tag" class="w-4 h-4 shrink-0"></i>
             <span>Catálogo & Servicios</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="plan" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="msg" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap">
+            <span class="relative shrink-0">
+              <i data-lucide="messages-square" class="w-4 h-4"></i>
+              <span class="absolute -top-2 -right-2.5 min-w-[16px] h-4 px-1 text-[9px] leading-4 text-center font-bold text-white bg-rose-500 rounded-full ring-2 ring-white empty:hidden" id="side-msg-count"></span>
+            </span>
+            <span>Mensajes & Seguimiento</span>
+          </div>
+        </button>
+
+        <button data-a="vw" data-m="plan" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="kanban-square" class="w-4 h-4"></i>
             <span>Planeación Visual</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="hor" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="hor" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="clock" class="w-4 h-4"></i>
             <span>Horas & Asistencia</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="eq" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="eq" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="wrench" class="w-4 h-4"></i>
             <span>Inventario & Equipos</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="con" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="con" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="hard-hat" class="w-4 h-4"></i>
             <span>Contratistas</span>
           </div>
         </button>
 
-        <button data-a="vw" data-m="prov" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
-          <div class="flex items-center gap-3">
+        <button data-a="vw" data-m="prov" class="sidebar-item w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
             <i data-lucide="package-search" class="w-4 h-4"></i>
             <span>Proveedores</span>
           </div>
@@ -146,17 +178,17 @@
     </div>
 
     <!-- User / Session Footer -->
-    <div class="p-4 border-t border-bizborder m-2 bg-bizbg rounded-2xl flex items-center justify-between">
-      <div class="flex items-center gap-3">
+    <div class="p-3 border-t border-bizborder m-2 bg-bizbg rounded-2xl flex items-center justify-between gap-1">
+      <div class="flex items-center gap-2.5 whitespace-nowrap min-w-0">
         <div id="user-ini" class="w-9 h-9 rounded-full bg-bizdark text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
           AD
         </div>
-        <div class="overflow-hidden">
+        <div class="overflow-hidden min-w-0">
           <p id="user-name" class="text-sm font-bold text-bizdark truncate">Andre Morales</p>
           <p id="user-role" class="text-xs text-bizmuted truncate">Administrador</p>
         </div>
       </div>
-      <div class="flex items-center">
+      <div class="flex items-center shrink-0">
         <button data-a="per" class="p-2 text-bizmuted hover:text-bizdark rounded-xl hover:bg-white transition-all" title="Ajustes de personal">
           <i data-lucide="settings" class="w-4 h-4"></i>
         </button>
@@ -173,10 +205,15 @@
     <!-- Top Navigation / Search Header -->
     <header class="px-6 py-4 bg-transparent sticky top-0 z-20 flex flex-wrap gap-4 items-center justify-between backdrop-blur-md">
       <!-- Search Input -->
-      <div class="relative flex-1 min-w-[240px] max-w-md">
+      <div class="relative flex-1 min-w-[240px] max-w-md" role="search">
+        <label for="global-search" class="sr-only">Buscar en la sección actual</label>
         <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-bizmuted pointer-events-none"></i>
-        <input id="global-search" type="text" placeholder="Buscar conductor, cliente, placa, ficha..." 
-          class="w-full bg-white border border-bizborder rounded-full pl-11 pr-4 py-2.5 text-sm font-medium text-bizdark placeholder:text-bizmuted focus:outline-none focus:ring-2 focus:ring-bizdark focus:border-transparent shadow-sm transition-all">
+        <input id="global-search" type="search" placeholder="Buscar conductor, cliente, placa, ficha..." aria-keyshortcuts="/"
+          class="w-full bg-white border border-bizborder rounded-full pl-11 pr-24 py-2.5 text-sm font-medium text-bizdark placeholder:text-bizmuted focus:outline-none focus:ring-2 focus:ring-bizdark focus:border-transparent shadow-sm transition-all">
+        <!-- Búsqueda rápida / paleta de comandos -->
+        <button data-a="cmdk" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold text-bizmuted hover:text-bizdark hover:bg-bizbg" aria-label="Abrir búsqueda rápida y comandos" aria-keyshortcuts="Control+K Meta+K">
+          <kbd class="!h-5 !min-w-0 !px-1.5" data-mod>Ctrl</kbd><kbd class="!h-5 !min-w-0 !px-1.5">K</kbd>
+        </button>
       </div>
 
       <!-- Controls & Action Buttons -->
@@ -207,7 +244,15 @@
         </div>
 
         <!-- Estado de guardado en Supabase -->
-        <span id="sync-status" class="hidden"></span>
+        <span id="sync-status" class="hidden" role="status"></span>
+
+        <!-- Tema claro / oscuro / sistema y guía de atajos -->
+        <button id="theme-btn" data-a="tema" type="button" class="w-9 h-9 rounded-full bg-white border border-bizborder text-bizdark hover:bg-bizbg flex items-center justify-center shadow-sm transition-all" aria-label="Cambiar tema" aria-keyshortcuts="Shift+T">
+          <i data-lucide="monitor" class="w-4 h-4"></i>
+        </button>
+        <button data-a="atajos" type="button" class="w-9 h-9 rounded-full bg-white border border-bizborder text-bizdark hover:bg-bizbg hidden sm:flex items-center justify-center shadow-sm transition-all" aria-label="Ver atajos de teclado" title="Atajos de teclado (?)" aria-keyshortcuts="Shift+?">
+          <i data-lucide="keyboard" class="w-4 h-4"></i>
+        </button>
 
         <!-- Personal button -->
         <button data-a="per" class="bg-white border border-bizborder hover:bg-bizbg text-bizdark px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
@@ -224,21 +269,22 @@
     </header>
 
     <!-- Mobile Navigation Tab Bar (Shown on small screens) -->
-    <div class="flex md:hidden px-4 py-2 overflow-x-auto gap-2 bg-white border-b border-bizborder sticky top-16 z-20">
+    <nav class="flex md:hidden px-4 py-2 overflow-x-auto gap-2 bg-white border-b border-bizborder sticky top-16 z-20" aria-label="Secciones" id="mobile-nav">
       <button data-a="vw" data-m="ini" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizdark text-white">Inicio</button>
       <button data-a="vw" data-m="desp" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Despacho</button>
       <button data-a="vw" data-m="cli" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Clientes</button>
       <button data-a="vw" data-m="gar" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Garantías</button>
       <button data-a="vw" data-m="cat" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Catálogo</button>
+      <button data-a="vw" data-m="msg" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Mensajes</button>
       <button data-a="vw" data-m="plan" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Planeación</button>
       <button data-a="vw" data-m="hor" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Horas</button>
       <button data-a="vw" data-m="eq" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Equipos</button>
       <button data-a="vw" data-m="con" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Contratistas</button>
       <button data-a="vw" data-m="prov" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Proveedores</button>
-    </div>
+    </nav>
 
     <!-- Main Content Container -->
-    <main class="flex-1 p-6 pt-2 space-y-6 max-w-[1600px] w-full mx-auto">
+    <main id="main-content" tabindex="-1" aria-busy="false" class="flex-1 p-6 pt-2 space-y-6 max-w-[1600px] w-full mx-auto focus:outline-none">
 
       <!-- ================= STATS & WIDGETS ROW (BizLink Direct Replica) ================= -->
       <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-banner">
@@ -349,6 +395,11 @@
       <!-- VIEW: CATÁLOGO & SERVICIOS -->
       <section id="view-cat" style="display: none;" class="space-y-5">
         <div id="cat-content" class="space-y-5"></div>
+      </section>
+
+      <!-- VIEW: MENSAJES & SEGUIMIENTO -->
+      <section id="view-msg" style="display: none;" class="space-y-5">
+        <div id="msg-content" class="space-y-5"></div>
       </section>
 
       <!-- VIEW: PLANEACIÓN (Canvas Visual) -->
@@ -464,6 +515,13 @@
     </div>
   </dialog>
 
+  <!-- Dialog: Biblioteca de mensajes -->
+  <dialog id="dlg-tpl">
+    <div class="dialog-content w-[560px]">
+      <div id="tpl-body"></div>
+    </div>
+  </dialog>
+
   <!-- Dialog: Ítem del catálogo -->
   <dialog id="dlg-cat">
     <div class="dialog-content w-[460px]">
@@ -495,7 +553,7 @@
   <!-- ================= INICIO DE SESIÓN (Supabase Auth) ================= -->
   <div id="login-screen" class="fixed inset-0 z-[80] bg-bizbg items-center justify-center p-4" style="display: none">
     <form id="login-form" class="biz-card p-8 w-full max-w-sm space-y-5" onsubmit="doLogin(); return false">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 whitespace-nowrap min-w-0">
         <div class="w-10 h-10 rounded-xl bg-bizdark text-white flex items-center justify-center font-bold text-lg shadow-sm">B</div>
         <div>
           <h1 class="text-xl font-bold tracking-tight text-bizdark leading-none">BizLink</h1>
@@ -544,9 +602,28 @@
   <div id="portal-page"></div>
 
   <!-- Toast Notification Container -->
-  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <!-- aria-live: los lectores de pantalla anuncian cada notificación sin mover el foco -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[60] flex flex-col gap-2 pointer-events-none" aria-live="polite" aria-relevant="additions"></div>
+  <div id="sr-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="sr-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Dialog: Guía de atajos de teclado (tecla ?) -->
+  <dialog id="dlg-keys">
+    <div class="dialog-content w-[620px]">
+      <div id="keys-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Búsqueda rápida / paleta de comandos (Ctrl/⌘ + K) -->
+  <dialog id="dlg-cmd" class="!mt-[12vh] !mb-auto">
+    <div class="dialog-content w-[600px] !p-0 overflow-hidden">
+      <div id="cmd-body"></div>
+    </div>
+  </dialog>
 
   <!-- Application Logic -->
   <script src="app.js"></script>
+  <!-- Accesibilidad: tema, atajos, foco, ARIA, validación y deshacer -->
+  <script src="a11y.js"></script>
 </body>
 </html>

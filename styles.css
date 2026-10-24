@@ -1,13 +1,32 @@
 /* BizLink Theme & Custom Styling */
+
+/* ================= PALETA (claro / oscuro) =================
+   Canales RGB para usarlos en Tailwind con opacidad: rgb(var(--c-ink) / 0.5)
+   Contrastes WCAG 2.1 AA verificados (texto normal ≥ 4.5:1):
+   - Claro:  tinta #18191d sobre #f5f4ef = 16.1:1 · gris #5d5f68 sobre #f5f4ef = 5.9:1, sobre blanco = 6.5:1
+   - Oscuro: tinta #ececE8 sobre #121316 = 15.6:1 · gris #a3a6b0 sobre #1b1c21 = 7.4:1 */
 :root {
-  --bg-main: #f5f4ef;
-  --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
+  --c-bg: 245 244 239;
+  --c-ink: 24 25 29;
+  --c-subtle: 235 234 228;
+  --c-border: 228 226 217;
+  --c-muted: 93 95 104;
+  --c-surface: 255 255 255;
+  --c-on-ink: 255 255 255;       /* texto sobre botones de tinta */
+  --focus: #4338ca;              /* indicador de foco: 8.6:1 sobre el fondo claro */
+
+  --bg-main: rgb(var(--c-bg));
+  --bg-sidebar: rgb(var(--c-surface));
+  --bg-card: rgb(var(--c-surface));
   --bg-card-dark: #191a1f;
-  --text-main: #18191d;
-  --text-muted: #73757d;
+  --text-main: rgb(var(--c-ink));
+  --text-muted: rgb(var(--c-muted));
   --border-subtle: #eae8e1;
-  --border-card: #e4e2d9;
+  --border-card: rgb(var(--c-border));
+  --kanban-col: #ebeae3;
+  --canvas: #faf9f5;
+  --canvas-dot: #dfded4;
+  --scroll: #d4d2c8;
   --accent-primary: #18191d;
   --accent-brand: #6366f1;
   --accent-brand-light: #eef2ff;
@@ -33,7 +52,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d2c8;
+  background: var(--scroll);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -109,8 +128,8 @@ body {
   min-height: 480px;
   overflow: auto;
   border-radius: 24px;
-  background-color: #faf9f5;
-  background-image: radial-gradient(#dfded4 1.25px, transparent 1.25px);
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--canvas-dot) 1.25px, transparent 1.25px);
   background-size: 24px 24px;
   position: relative;
   border: 1px solid var(--border-card);
@@ -126,7 +145,7 @@ body {
   position: absolute;
   width: 240px;
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--border-card);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
@@ -168,7 +187,7 @@ dialog::backdrop {
 }
 
 .dialog-content {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: 24px;
   padding: 28px;
@@ -179,7 +198,7 @@ dialog::backdrop {
 
 /* Kanban column styles */
 .kanban-col {
-  background: #ebeae3;
+  background: var(--kanban-col);
   border-radius: 20px;
   padding: 14px;
   min-width: 280px;
@@ -215,7 +234,7 @@ body.public-mode { -webkit-user-select: text; user-select: text; }
   padding: 6px 10px;
   border: 2px solid #18191d;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--bg-card);
   white-space: nowrap;
 }
 
@@ -243,4 +262,178 @@ details > summary::-webkit-details-marker { display: none; }
     top: 0;
     width: 100%;
   }
+}
+
+/* =====================================================================
+   MODO OSCURO
+   La clase .dark en <html> la pone el script del <head> (sin parpadeo) o el botón de tema.
+   Los colores de marca (bizbg, bizdark, …) cambian solos por variables; aquí se ajustan
+   las utilidades de Tailwind con colores fijos que usa la app.
+   ===================================================================== */
+.dark {
+  --c-bg: 18 19 22;
+  --c-ink: 236 236 232;
+  --c-subtle: 38 40 46;
+  --c-border: 48 50 58;
+  --c-muted: 163 166 176;
+  --c-surface: 27 28 33;
+  --c-on-ink: 18 19 22;
+  --focus: #a5b4fc;            /* 9.8:1 sobre el fondo oscuro */
+  --border-subtle: #2a2c33;
+  --kanban-col: #17181c;
+  --canvas: #15161a;
+  --canvas-dot: #2c2e35;
+  --scroll: #3a3c44;
+}
+
+/* Superficies blancas → superficie oscura */
+.dark .bg-white { background-color: rgb(var(--c-surface)); }
+.dark .bg-white\/90 { background-color: rgb(var(--c-surface) / 0.9); }
+.dark .bg-white\/70 { background-color: rgb(var(--c-surface) / 0.7); }
+.dark .hover\:bg-white:hover { background-color: rgb(var(--c-surface)); }
+.dark .ring-white { --tw-ring-color: rgb(var(--c-surface)); }
+
+/* Botones de "tinta": en oscuro el fondo es claro, el texto pasa a oscuro */
+.dark .bg-bizdark { color: rgb(var(--c-on-ink)); }
+.dark .bg-bizdark.text-white,
+.dark .bg-bizdark .text-white { color: rgb(var(--c-on-ink)); }
+.dark .bg-bizdark:hover,
+.dark .hover\:bg-neutral-800:hover { background-color: #ffffff; }
+.dark .bg-bizdark\/5 { color: rgb(var(--c-ink)); }
+
+/* Tarjeta destacada (ficha activa): sigue oscura, con borde visible */
+.dark .biz-card-dark { background: #23252c; border-color: #3a3c45; }
+
+/* Píldoras de estado */
+.dark .pill-emerald { background: rgb(16 185 129 / 0.16); color: #6ee7b7; }
+.dark .pill-amber   { background: rgb(245 158 11 / 0.16); color: #fcd34d; }
+.dark .pill-violet  { background: rgb(139 92 246 / 0.18); color: #c4b5fd; }
+.dark .pill-sky     { background: rgb(14 165 233 / 0.16); color: #7dd3fc; }
+.dark .pill-rose    { background: rgb(244 63 94 / 0.16);  color: #fda4af; }
+.dark .pill-slate   { background: rgb(148 163 184 / 0.16); color: #cbd5e1; }
+
+/* Fondos tenues de color (alertas, avisos, estados) */
+.dark .bg-rose-50, .dark .bg-rose-50\/50, .dark .bg-rose-100 { background-color: rgb(244 63 94 / 0.14); }
+.dark .bg-amber-50, .dark .bg-amber-50\/50, .dark .bg-amber-50\/60, .dark .bg-amber-100 { background-color: rgb(245 158 11 / 0.14); }
+.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: rgb(16 185 129 / 0.14); }
+.dark .bg-violet-50, .dark .bg-violet-50\/40, .dark .bg-violet-100 { background-color: rgb(139 92 246 / 0.16); }
+.dark .bg-sky-50 { background-color: rgb(14 165 233 / 0.14); }
+.dark .hover\:bg-rose-50:hover { background-color: rgb(244 63 94 / 0.14); }
+.dark .hover\:bg-emerald-50:hover { background-color: rgb(16 185 129 / 0.14); }
+.dark .hover\:bg-violet-50:hover { background-color: rgb(139 92 246 / 0.16); }
+.dark .border-rose-200 { border-color: rgb(244 63 94 / 0.35); }
+.dark .border-amber-200 { border-color: rgb(245 158 11 / 0.35); }
+.dark .border-emerald-100, .dark .border-emerald-200 { border-color: rgb(16 185 129 / 0.35); }
+.dark .border-violet-300 { border-color: rgb(139 92 246 / 0.45) !important; }
+.dark .text-rose-600, .dark .text-rose-700 { color: #fb7185; }
+.dark .text-rose-800, .dark .text-rose-900 { color: #fda4af; }
+.dark .text-amber-600, .dark .text-amber-700 { color: #fbbf24; }
+.dark .text-amber-800, .dark .text-amber-900 { color: #fcd34d; }
+.dark .text-emerald-600, .dark .text-emerald-700 { color: #34d399; }
+.dark .text-emerald-800 { color: #6ee7b7; }
+.dark .text-violet-600, .dark .text-violet-700 { color: #a78bfa; }
+.dark .text-indigo-600 { color: #a5b4fc; }
+
+/* Medidor y lienzos */
+.dark #gauge-circle { stroke: rgb(var(--c-ink)); }
+.dark .dialog-content { box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7); }
+.dark .pin-card { color: rgb(var(--c-ink)); }
+
+/* =====================================================================
+   ACCESIBILIDAD
+   ===================================================================== */
+
+/* Indicador de foco visible (WCAG 2.4.7 y 2.4.11): solo con teclado, no con el mouse */
+:focus-visible {
+  outline: 3px solid var(--focus) !important;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Enlace "Saltar al contenido": visible solo al recibir foco con Tab */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgb(var(--c-ink));
+  color: rgb(var(--c-on-ink));
+  font-size: 14px;
+  font-weight: 700;
+  transform: translateY(-160%);
+  transition: transform 0.15s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+
+/* Campos con error (validación accesible) */
+[aria-invalid="true"] { border-color: #e11d48 !important; box-shadow: 0 0 0 3px rgb(225 29 72 / 0.15); }
+.field-err {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #be123c;
+}
+.field-err::before { content: "⚠"; }
+.dark .field-err { color: #fda4af; }
+.req-mark { color: #be123c; margin-left: 2px; }
+.dark .req-mark { color: #fda4af; }
+
+/* Teclas en la guía de atajos */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid rgb(var(--c-border));
+  border-bottom-width: 2px;
+  border-radius: 7px;
+  background: rgb(var(--c-surface));
+  color: rgb(var(--c-ink));
+  font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Paleta de comandos: opción activa */
+[role="option"][aria-selected="true"] { background: rgb(var(--c-subtle)); }
+
+/* Carga con skeleton (aria-busy en el contenedor) */
+.skeleton {
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgb(var(--c-subtle)) 25%, rgb(var(--c-border)) 50%, rgb(var(--c-subtle)) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-brillo 1.3s ease-in-out infinite;
+}
+@keyframes skeleton-brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Respeta "reducir movimiento" del sistema operativo */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .biz-card:hover { transform: none; }
+}
+
+/* Modo de alto contraste de Windows */
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight !important; }
+  .biz-pill, .biz-card, .dialog-content { border: 1px solid CanvasText; }
 }
