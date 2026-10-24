@@ -540,6 +540,15 @@ function renderFichaCard(f, isHighlightedDark = false) {
           `).join('')}
           ${f.par.length > 3 ? `<p class="text-[11px] text-bizmuted font-semibold text-center">+${f.par.length - 3} paradas más...</p>` : ''}
         </ul>
+
+        ${(() => {
+          const cob = f.par.filter(p => !p.pg && p.e !== 'completado').reduce((s, p) => s + (+p.monto || 0), 0);
+          return cob ? `
+            <button data-a="cfg" data-id="${f.id}" class="w-full flex items-center justify-between text-xs p-2 rounded-xl ${isHighlightedDark ? 'bg-white/5 text-zinc-200' : 'bg-amber-50 text-amber-800'}" title="Ver ítems y cobro">
+              <span class="flex items-center gap-1.5 font-semibold"><i data-lucide="banknote" class="w-3.5 h-3.5"></i>Cobrar en sitio</span>
+              <b class="${isHighlightedDark ? 'text-white' : ''}">${$m(cob)}</b>
+            </button>` : '';
+        })()}
       </div>
 
       <!-- Módulos Activos (Resumen) -->
@@ -2514,7 +2523,7 @@ function garList() {
             </div>
             <div class="min-w-0">
               <p class="text-sm font-semibold text-bizdark truncate" title="${esc(g.prod)}">${esc(g.prod)}</p>
-              <p class="text-[11px] text-bizmuted truncate">${g.serie ? esc(g.serie) : 'Sin serie / factura'}</p>
+              <p class="text-[11px] text-bizmuted truncate">${g.serie ? esc(g.serie) : 'Sin serie / factura'}${g.val != null ? ` · Ref. ${$m(g.val)}` : ''}</p>
             </div>
             <div class="min-w-0">
               <p class="text-[11px] font-semibold text-bizdark">${fdate(g.ini)} → ${fdate(g.ven)}</p>
@@ -2542,7 +2551,7 @@ const renderGarList = () => { const el = $('#gar-list'); if (el) { el.innerHTML 
 
 // ---------- Formulario rápido (máximo 4 campos) ----------
 function openGarForm() {
-  GS.form = { cli: null, cq: '', nuevo: false, nn: '', nt: '', prod: '', serie: '', per: '12m', dias: 30 };
+  GS.form = { cli: null, cq: '', nuevo: false, nn: '', nt: '', prod: '', cat: null, val: null, serie: '', per: '12m', dias: 30 };
   renderGarForm();
   $('#dlg-gar').showModal();
   setTimeout(() => { const i = $('#gar-cq'); if (i) i.focus(); }, 30);
@@ -2615,10 +2624,11 @@ function renderGarForm() {
         <div id="gar-cli">${garCliHTML()}</div>
       </div>
 
-      <label class="block">
+      <div>
         <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">2 · Producto / servicio cubierto</span>
-        <input data-f="gprod" value="${esc(fm.prod)}" placeholder="Ej. Aire acondicionado Inverter 12k BTU" autocomplete="off" class="${INP}">
-      </label>
+        <input data-f="gprod" value="${esc(fm.prod)}" placeholder="Escribe o elige del catálogo · ej. Aire Inverter 12k BTU" autocomplete="off" class="${INP}">
+        <div id="gar-prod-sug" class="mt-1.5">${garProdHTML()}</div>
+      </div>
 
       <label class="block">
         <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">3 · Código / serie / factura <span class="normal-case font-semibold">(opcional)</span></span>
@@ -2651,6 +2661,25 @@ const garVenHTML = ven => ven
   ? `<i data-lucide="calendar-check" class="w-4 h-4 text-emerald-600"></i>Desde hoy hasta el <b class="text-bizdark">${fdate(ven)}</b>`
   : '<i data-lucide="calendar-x" class="w-4 h-4"></i>Indica la cantidad de días';
 
+// Producto vinculado al catálogo (valor de referencia) o sugerencias mientras se escribe
+function garProdHTML() {
+  const fm = GS.form;
+  if (fm.cat) return `
+    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
+      <span class="font-semibold text-emerald-800 flex items-center gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5"></i>Vinculado al catálogo · valor de referencia <b>${$m(fm.val)}</b></span>
+      <button type="button" data-a="gcatx" class="text-emerald-800 hover:text-rose-600" title="Desvincular"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+    </div>`;
+  const q = fm.prod.trim().toLowerCase();
+  if (q.length < 2) return '';
+  const hits = catActivos().filter(c => c.nombre.toLowerCase().includes(q) && c.nombre.toLowerCase() !== q).slice(0, 4);
+  return hits.map(c => `
+    <button type="button" data-a="gcat" data-id="${c.id}" class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-bizbg hover:bg-bizsubtle text-left mb-1">
+      <span class="flex items-center gap-2 min-w-0"><i data-lucide="tag" class="w-3.5 h-3.5 text-bizmuted shrink-0"></i><span class="text-xs font-bold text-bizdark truncate">${esc(c.nombre)}</span></span>
+      <span class="text-[11px] font-bold text-bizmuted shrink-0">${$m(c.precio_estandar)}</span>
+    </button>`).join('');
+}
+const garRefreshProd = () => { $('#gar-prod-sug').innerHTML = garProdHTML(); lucide.createIcons(); };
+
 const garRefreshCli = () => { $('#gar-cli').innerHTML = garCliHTML(); lucide.createIcons(); };
 
 // ---------- Ticket: convertir garantía en ficha de despacho ----------
@@ -2678,7 +2707,7 @@ function renderTicket() {
 
       <div class="p-3 rounded-2xl bg-bizbg text-xs space-y-1">
         <div class="flex items-center justify-between gap-2"><b class="text-bizdark">${esc(c.n)}</b><span class="biz-pill pill-${s.t}">${s.l}</span></div>
-        <p class="text-bizmuted">${esc(g.prod)}${g.serie ? ' · ' + esc(g.serie) : ''} · cubre hasta ${fdate(g.ven)}</p>
+        <p class="text-bizmuted">${esc(g.prod)}${g.serie ? ' · ' + esc(g.serie) : ''} · cubre hasta ${fdate(g.ven)}${g.val != null ? ` · valor de referencia ${$m(g.val)}` : ''}</p>
         ${s.k === 'venc' ? '<p class="text-rose-700 font-semibold">⚠️ La garantía está vencida: el servicio podría tener costo.</p>' : ''}
       </div>
 
@@ -2724,6 +2753,14 @@ Object.assign(ACT, {
     Object.assign(GS.form, { nuevo: true, nn: dig.length >= 7 ? '' : q, nt: dig.length >= 7 ? q : '' });
     garRefreshCli(); $('#gar-nn').focus();
   },
+  gcat: t => {
+    const c = CAT.find(x => x.id === t.dataset.id);
+    Object.assign(GS.form, { prod: c.nombre, cat: c.id, val: +c.precio_estandar });
+    const i = document.querySelector('[data-f="gprod"]'); if (i) i.value = c.nombre;
+    garRefreshProd();
+    const s = document.querySelector('[data-f="gserie"]'); if (s) s.focus();
+  },
+  gcatx: () => { GS.form.cat = null; GS.form.val = null; garRefreshProd(); },
   gbusca: () => { GS.form.nuevo = false; garRefreshCli(); $('#gar-cq').focus(); },
   gper: t => { GS.form.per = t.dataset.m; renderGarForm(); if (t.dataset.m === 'custom') { const d = document.querySelector('[data-f="gdias"]'); if (d) { d.focus(); d.select(); } } },
   gsave: () => {
@@ -2739,7 +2776,7 @@ Object.assign(ACT, {
       c = { id: uid(), n: fm.nn.trim(), tp: 'Persona', ct: '', t: fm.nt.replace(/\D/g, ''), t2: '', em: '', dir: '', z: '', ref: '', ml: '', hor: '', pago: 0, desc: 0, lim: 0, est: 'act', fav: false, f: '', nota: 'Creado desde Garantías.', h: [], eq: [] };
       CLI.push(c);
     }
-    const g = { id: uid(), cli: c.id, prod: fm.prod.trim(), serie: fm.serie.trim(), ini: hoy(), ven, per: fm.per === 'custom' ? fm.dias + 'd' : fm.per, tk: [] };
+    const g = { id: uid(), cli: c.id, prod: fm.prod.trim(), serie: fm.serie.trim(), ini: hoy(), ven, per: fm.per === 'custom' ? fm.dias + 'd' : fm.per, tk: [], cat: fm.cat || null, val: fm.val ?? null };
     GAR.push(g);
     (c.eq = c.eq || []).push({ id: g.id, n: g.prod, mm: g.serie, i: g.ini, g: g.ven });
     $('#dlg-gar').close();
@@ -2783,7 +2820,11 @@ Object.assign(FLD, {
   gcq: el => { GS.form.cq = el.value; $('#gar-sug').innerHTML = garSug(); lucide.createIcons(); },
   gnn: el => { GS.form.nn = el.value; },
   gnt: el => { GS.form.nt = el.value; },
-  gprod: el => { GS.form.prod = el.value; },
+  gprod: el => {
+    GS.form.prod = el.value;
+    if (GS.form.cat) { const c = CAT.find(x => x.id === GS.form.cat); if (!c || c.nombre !== el.value) { GS.form.cat = null; GS.form.val = null; } }
+    garRefreshProd();
+  },
   gserie: el => { GS.form.serie = el.value; },
   gdias: el => { GS.form.dias = el.value; $('#gar-ven').innerHTML = garVenHTML(garVenForm(GS.form)); lucide.createIcons(); },
   tfalla: el => { TK.falla = el.value; },
@@ -2796,6 +2837,383 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || !e.target.matches('#gar-cq')) return;
   e.preventDefault();
   const b = document.querySelector('#gar-sug [data-a="gpick"]') || document.querySelector('#gar-sug [data-a="gnuevo"]');
+  if (b) b.click();
+});
+
+// ================= VISTA: CATÁLOGO & SERVICIOS (lista de precios operativa) =================
+// Tabla propia en Supabase: catalogo_servicios (ver supabase/migraciones/002_catalogo.sql)
+const KCAT = {
+  'Servicio': ['violet', 'wrench', 'serv.'],
+  'Producto': ['sky', 'package', 'ud'],
+  'Flete / Logística': ['amber', 'truck', 'viaje'],
+  'Paquete / Combo': ['emerald', 'boxes', 'paq.']
+};
+const CAT = [];
+const KS = { q: '', cat: 'todas', missing: false };
+const CAT_DEMO = [
+  { nombre: 'Instalación de Aire 12K BTU', categoria: 'Servicio', precio_estandar: 6500, precio_minimo: 5500, descripcion_whatsapp: 'Instalación completa de aire de 12 000 BTU: soporte, tubería de cobre hasta 3 m, drenaje y prueba de funcionamiento.' },
+  { nombre: 'Mantenimiento preventivo de minisplit', categoria: 'Servicio', precio_estandar: 2500, precio_minimo: 2000, descripcion_whatsapp: 'Limpieza profunda de unidad interior y exterior, revisión de presión de gas y prueba eléctrica.' },
+  { nombre: 'Aire acondicionado Inverter 12K BTU', categoria: 'Producto', precio_estandar: 32900, precio_minimo: 30500, descripcion_whatsapp: 'Equipo Inverter de 12 000 BTU, bajo consumo, con control remoto. Garantía de 1 año.' },
+  { nombre: 'Cámara IP HD', categoria: 'Producto', precio_estandar: 3800, precio_minimo: 3300, descripcion_whatsapp: 'Cámara IP Full HD con visión nocturna y acceso desde el celular.' },
+  { nombre: 'Flete Zona Norte', categoria: 'Flete / Logística', precio_estandar: 1500, precio_minimo: 1200, descripcion_whatsapp: 'Entrega en Zona Norte (Villa Mella, Los Prados y alrededores) el mismo día.' },
+  { nombre: 'Flete Santo Domingo Este', categoria: 'Flete / Logística', precio_estandar: 1200, precio_minimo: 1000, descripcion_whatsapp: 'Entrega en Santo Domingo Este en 24 horas.' },
+  { nombre: 'Kit 4 cámaras + DVR instalado', categoria: 'Paquete / Combo', precio_estandar: 24500, precio_minimo: 22000, descripcion_whatsapp: '4 cámaras HD, DVR de 4 canales, disco de 1 TB, cableado e instalación. Acceso desde el celular.' }
+];
+
+const catActivos = () => CAT.filter(x => x.estado !== 'Inactivo');
+const catUnidad = c => (KCAT[c.categoria] || KCAT.Servicio)[2];
+const catPill = c => { const [t, i] = KCAT[c.categoria] || KCAT.Servicio; return `<span class="biz-pill pill-${t}"><i data-lucide="${i}" class="w-3 h-3"></i>${esc(c.categoria)}</span>`; };
+const catMsg = c => `*${c.nombre}*\n${c.descripcion_whatsapp ? c.descripcion_whatsapp + '\n' : ''}💵 Precio: ${$m(c.precio_estandar)}\n— ${CE.emp}`;
+const sortCat = () => CAT.sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre, 'es'));
+const catEnNube = () => typeof DB !== 'undefined' && DB.ready && !KS.missing;
+
+async function loadCatalog() {
+  const { data, error } = await DB.sb.from('catalogo_servicios').select('*').eq('empresa_id', DB.emp).order('nombre');
+  if (error) {
+    console.error(error);
+    KS.missing = /catalogo_servicios|schema cache|does not exist/i.test(error.message);
+    return;
+  }
+  KS.missing = false;
+  replaceArr(CAT, data);
+  sortCat();
+}
+
+// Guarda en Supabase (o en memoria si no hay conexión / falta la tabla)
+async function catSave(row, id) {
+  if (!catEnNube()) {
+    if (id) Object.assign(CAT.find(x => x.id === id), row);
+    else CAT.push({ id: uid(), created_at: new Date().toISOString(), estado: 'Activo', ...row });
+    sortCat();
+    return true;
+  }
+  const q = id
+    ? DB.sb.from('catalogo_servicios').update(row).eq('id', id).select().single()
+    : DB.sb.from('catalogo_servicios').insert({ ...row, empresa_id: DB.emp }).select().single();
+  const { data, error } = await q;
+  if (error) { toast('No se pudo guardar: ' + error.message, 'rose'); return false; }
+  const i = CAT.findIndex(x => x.id === data.id);
+  if (i >= 0) CAT[i] = data; else CAT.push(data);
+  sortCat();
+  return true;
+}
+
+async function catSeed() {
+  if (!catEnNube()) { CAT_DEMO.forEach(x => CAT.push({ id: uid(), estado: 'Activo', created_at: new Date().toISOString(), ...x })); sortCat(); return; }
+  const { data, error } = await DB.sb.from('catalogo_servicios').insert(CAT_DEMO.map(x => ({ ...x, empresa_id: DB.emp }))).select();
+  if (error) return toast('No se pudo cargar el catálogo de ejemplo: ' + error.message, 'rose');
+  data.forEach(x => { if (!CAT.some(y => y.id === x.id)) CAT.push(x); });
+  sortCat();
+}
+
+// Cambios del catálogo hechos por otros usuarios
+function onCatalogo({ eventType, new: nw, old }) {
+  if (eventType === 'DELETE') { const i = CAT.findIndex(x => x.id === old.id); if (i >= 0) CAT.splice(i, 1); }
+  else { const i = CAT.findIndex(x => x.id === nw.id); if (i >= 0) CAT[i] = nw; else CAT.push(nw); sortCat(); }
+  if (STATE.view === 'cat') rerenderAll();
+}
+
+function renderCatalogo() {
+  const container = $('#cat-content');
+  if (!container) return;
+  const cats = Object.keys(KCAT);
+  container.innerHTML = `
+    ${KS.missing ? `
+      <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50 text-xs text-amber-900 font-semibold flex items-start gap-2">
+        <i data-lucide="database-zap" class="w-4 h-4 shrink-0"></i>
+        <span>Falta crear la tabla del catálogo en Supabase: ejecuta <b>supabase/migraciones/002_catalogo.sql</b> en el SQL Editor. Mientras tanto, los cambios del catálogo no se guardan.</span>
+      </div>` : ''}
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="relative flex-1 min-w-[220px] max-w-md">
+        <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-bizmuted pointer-events-none"></i>
+        <input data-f="ksq" value="${esc(KS.q)}" placeholder="Buscar por nombre o categoría…" class="w-full bg-white border border-bizborder rounded-full pl-11 pr-4 py-2.5 text-sm font-medium text-bizdark placeholder:text-bizmuted focus:outline-none focus:ring-2 focus:ring-bizdark shadow-sm">
+      </div>
+      <button data-a="catnew" class="${BTN_DARK}"><i data-lucide="plus" class="w-4 h-4"></i><span>Nuevo ítem</span></button>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      ${chip(KS.cat === 'todas', 'data-a="catchip" data-m="todas"', `Todos (${CAT.length})`)}
+      ${cats.map(c => chip(KS.cat === c, `data-a="catchip" data-m="${esc(c)}"`, `<i data-lucide="${KCAT[c][1]}" class="w-3.5 h-3.5"></i>${esc(c)} (${CAT.filter(x => x.categoria === c).length})`)).join('')}
+    </div>
+
+    <div id="cat-list" class="biz-card overflow-hidden">${catList()}</div>
+  `;
+  lucide.createIcons();
+}
+
+function catList() {
+  const q = KS.q.toLowerCase().trim();
+  const rows = CAT.filter(c => (KS.cat === 'todas' || c.categoria === KS.cat) && (!q || [c.nombre, c.categoria, c.descripcion_whatsapp].join(' ').toLowerCase().includes(q)));
+  if (!rows.length) return `
+    <div class="p-12 text-center space-y-3">
+      <i data-lucide="tag" class="w-8 h-8 mx-auto text-bizmuted"></i>
+      <p class="text-sm font-semibold text-bizmuted">${CAT.length ? 'No hay ítems con esta búsqueda.' : 'Tu catálogo está vacío.'}</p>
+      ${CAT.length ? '' : `
+        <div class="flex items-center justify-center gap-2 flex-wrap">
+          <button data-a="catnew" class="${BTN_DARK}"><i data-lucide="plus" class="w-4 h-4"></i>Crear el primero</button>
+          <button data-a="catdemo" class="${BTN}"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i>Cargar ejemplos</button>
+        </div>`}
+    </div>`;
+  return `
+    <div class="hidden lg:grid grid-cols-[2fr_1fr_0.8fr_0.8fr_auto] gap-4 px-5 py-3 border-b border-bizborder text-[11px] font-bold text-bizmuted uppercase tracking-wider">
+      <span>Nombre</span><span>Categoría</span><span class="text-right">Precio estándar</span><span class="text-right">Precio mínimo</span><span class="w-[178px] text-right">Acciones</span>
+    </div>
+    <div class="divide-y divide-bizborder">
+      ${rows.map(c => `
+        <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr_0.8fr_0.8fr_auto] gap-2 lg:gap-4 px-5 py-4 items-center hover:bg-bizbg/60 transition-colors ${c.estado === 'Inactivo' ? 'opacity-60' : ''}">
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-bizdark truncate">${esc(c.nombre)} ${c.estado === 'Inactivo' ? '<span class="biz-pill pill-slate !text-[10px] ml-1">Inactivo</span>' : ''}</p>
+            <p class="text-[11px] text-bizmuted truncate" title="${esc(c.descripcion_whatsapp || '')}">${esc(c.descripcion_whatsapp || 'Sin descripción para WhatsApp')}</p>
+          </div>
+          <div>${catPill(c)}</div>
+          <p class="text-sm font-extrabold text-bizdark lg:text-right">${$m(c.precio_estandar)}</p>
+          <p class="text-xs font-semibold text-bizmuted lg:text-right">${c.precio_minimo != null ? $m(c.precio_minimo) : '—'}</p>
+          <div class="flex items-center gap-1.5 lg:justify-end">
+            <button data-a="catcopy" data-id="${c.id}" class="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap" title="Copiar texto para WhatsApp"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>Copiar info WhatsApp</button>
+            <button data-a="catedit" data-id="${c.id}" class="p-1.5 text-bizmuted hover:text-bizdark" title="Editar"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+            <button data-a="catdel" data-id="${c.id}" class="p-1.5 text-bizmuted hover:text-rose-600" title="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+const renderCatList = () => { const el = $('#cat-list'); if (el) { el.innerHTML = catList(); lucide.createIcons(); } };
+
+function catForm(c) {
+  formDlg('cat', c ? 'Editar ítem' : 'Nuevo ítem', c ? esc(c.nombre) : 'Producto, servicio, flete o combo de tu lista de precios', [
+    { k: 'nombre', l: 'Nombre', v: c?.nombre, full: 1, ph: 'Ej. Instalación de Aire 12K BTU' },
+    { k: 'categoria', l: 'Categoría', v: c?.categoria || 'Servicio', full: 1, opts: Object.keys(KCAT).map(x => [x, x]) },
+    { k: 'precio_estandar', l: 'Precio estándar', type: 'number', v: c?.precio_estandar ?? '', full: 1, ph: '0.00' },
+    { k: 'precio_minimo', l: 'Precio mínimo (opcional · límite para descuentos)', type: 'number', v: c?.precio_minimo ?? '', full: 1, ph: 'Sin mínimo' },
+    { k: 'descripcion_whatsapp', l: 'Descripción para WhatsApp', type: 'textarea', v: c?.descripcion_whatsapp, full: 1 },
+    ...(c ? [{ k: 'estado', l: 'Estado', v: c.estado || 'Activo', full: 1, opts: [['Activo', 'Activo'], ['Inactivo', 'Inactivo (no aparece al armar fichas)']] }] : [])
+  ], 'catsave', c ? c.id : '');
+  $$('#frm-cat input[type="number"]').forEach(i => { i.step = '0.01'; i.min = '0'; });
+}
+
+// ---------- Editor de ítems con total a cobrar (fichas de despacho) ----------
+// Líneas: { cat, n, q, u, pu, min }
+const LN = { lines: [], q: '' };
+const lnTotal = () => LN.lines.reduce((s, l) => s + (+l.q || 0) * (+l.pu || 0), 0);
+const lnBajoMin = l => l.min != null && +l.pu < +l.min;
+
+function lnHTML() {
+  LN.q = '';
+  return `
+    <div class="space-y-2.5">
+      ${secTitle('Ítems y servicios', '<span class="text-[11px] font-semibold text-bizmuted normal-case tracking-normal">desde el catálogo</span>')}
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-[22px] -translate-y-1/2 text-bizmuted pointer-events-none"></i>
+        <input id="ln-q" data-f="lnq" autocomplete="off" placeholder="Buscar producto, servicio o flete…" class="${INP} pl-10">
+        <div id="ln-sug" class="mt-1.5 space-y-1"></div>
+      </div>
+      <div id="ln-box">${lnRows()}</div>
+    </div>`;
+}
+
+function lnRows() {
+  const total = `
+    <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-bizdark text-white mt-2">
+      <span class="text-xs font-bold flex items-center gap-1.5"><i data-lucide="banknote" class="w-4 h-4"></i>Total a cobrar en sitio / contra entrega</span>
+      <b id="ln-total" class="text-lg font-extrabold tracking-tight">${$m(lnTotal())}</b>
+    </div>`;
+  if (!LN.lines.length) return '<p class="text-xs text-bizmuted p-3 rounded-2xl bg-bizbg">Sin ítems. Busca en el catálogo para agregar productos, servicios o fletes.</p>' + total;
+  return `
+    <div class="space-y-1.5">
+      ${LN.lines.map((l, i) => `
+        <div class="p-2.5 rounded-2xl bg-bizbg">
+          <div class="grid grid-cols-[1fr_58px_96px_auto] gap-2 items-center">
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-bizdark truncate" title="${esc(l.n)}">${esc(l.n)}</p>
+              <p id="ln-sub-${i}" class="text-[11px] text-bizmuted">${esc(l.u || 'ud')} · ${$m((+l.q || 0) * (+l.pu || 0))}</p>
+            </div>
+            <input type="number" min="1" step="1" value="${esc(l.q)}" data-f="lnqty" data-i="${i}" title="Cantidad" class="w-full bg-white border border-bizborder rounded-xl px-2 py-1.5 text-xs font-bold text-bizdark text-center">
+            <input type="number" min="0" step="0.01" value="${esc(l.pu)}" data-f="lnpu" data-i="${i}" title="Precio unitario" class="w-full bg-white border border-bizborder rounded-xl px-2 py-1.5 text-xs font-bold text-bizdark text-right">
+            <button type="button" data-a="lnrm" data-i="${i}" class="p-1 text-bizmuted hover:text-rose-600" title="Quitar"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <p id="ln-warn-${i}" class="text-[11px] font-bold text-amber-700 mt-1 ${lnBajoMin(l) ? '' : 'hidden'}">⚠️ Por debajo del precio mínimo (${$m(l.min)})</p>
+        </div>`).join('')}
+    </div>` + total;
+}
+
+function lnSug() {
+  const q = LN.q.trim().toLowerCase();
+  if (!q) return '';
+  const hits = catActivos().filter(c => [c.nombre, c.categoria].join(' ').toLowerCase().includes(q)).slice(0, 6);
+  return `
+    <div class="p-1.5 rounded-2xl border border-bizborder bg-white shadow-lg space-y-1">
+      ${hits.map(c => `
+        <button type="button" data-a="lnadd" data-id="${c.id}" class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-bizbg text-left">
+          <span class="flex items-center gap-2 min-w-0"><i data-lucide="${(KCAT[c.categoria] || KCAT.Servicio)[1]}" class="w-4 h-4 text-bizmuted shrink-0"></i><span class="text-xs font-bold text-bizdark truncate">${esc(c.nombre)}</span></span>
+          <span class="text-xs font-extrabold text-bizdark shrink-0">${$m(c.precio_estandar)}</span>
+        </button>`).join('')}
+      ${hits.length ? '' : `<p class="text-[11px] text-bizmuted px-3 py-1">${CAT.length ? 'No está en el catálogo.' : 'El catálogo está vacío.'}</p>`}
+      <button type="button" data-a="lnfree" class="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bizbg text-left text-[11px] font-bold text-bizmuted">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>Agregar "${esc(LN.q.trim())}" como ítem libre
+      </button>
+    </div>`;
+}
+
+const lnRefresh = () => { const b = $('#ln-box'); if (b) { b.innerHTML = lnRows(); lucide.createIcons(); } };
+const lnPick = () => { const q = $('#ln-q'); if (q) { q.value = ''; q.focus(); } LN.q = ''; $('#ln-sug').innerHTML = ''; lnRefresh(); };
+// Convierte las líneas a los ítems de la parada (conduce) y su monto
+const lnApply = p => {
+  p.it = LN.lines.map(({ cat, n, q, u, pu, min }) => ({ cat: cat || null, n, q: +q || 1, u: u || 'ud', pu: +pu || 0, min: min ?? null }));
+  p.monto = lnTotal();
+};
+// Ítems viejos sin precio: se conserva el monto acordado como una línea aparte
+function lnLoad(p) {
+  LN.lines = (p.it || []).map(x => ({ ...x, pu: x.pu ?? 0 }));
+  const conPrecio = lnTotal();
+  if ((+p.monto || 0) > conPrecio) LN.lines.push({ cat: null, n: 'Cargo acordado (sin desglose)', q: 1, u: 'serv.', pu: +p.monto - conPrecio, min: null });
+}
+
+// ---------- Ajustes & Paradas de una ficha (ítems y cobro por parada) ----------
+const CFG = { fid: null, sid: null, pg: false };
+const cfgCur = () => { const f = F.find(x => x.id === CFG.fid); return [f, f && f.par.find(x => x.id === CFG.sid)]; };
+
+function openCfg(fid) {
+  const f = F.find(x => x.id === fid);
+  if (!f) return;
+  if (!f.par.length) return toast('Esta ficha no tiene paradas', 'rose');
+  CFG.fid = f.id;
+  cfgSelect((f.par.find(x => x.e !== 'completado') || f.par[0]).id);
+  renderCfg();
+  $('#dlg-cfg').showModal();
+}
+
+function cfgSelect(sid) {
+  CFG.sid = sid;
+  const [, p] = cfgCur();
+  lnLoad(p);
+  CFG.pg = !!p.pg;
+}
+
+function renderCfg() {
+  const [f, p] = cfgCur();
+  $('#cfg-body').innerHTML = `
+    <div class="space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-bizborder">
+        <div>
+          <h3 class="text-base font-bold text-bizdark">Ajustes & Paradas · ${esc(f.cod)}</h3>
+          <p class="text-xs text-bizmuted font-medium">${esc(f.veh.n)} · ${esc(f.veh.p)} · ítems y cobro por parada</p>
+        </div>
+        <button onclick="$('#dlg-cfg').close()" class="p-1 rounded-lg text-bizmuted hover:text-bizdark"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="flex gap-2 flex-wrap">
+        ${f.par.map((x, i) => `
+          <button data-a="cfgstop" data-id="${x.id}" class="px-3 py-2 rounded-2xl border text-left transition-all ${x.id === p.id ? 'bg-bizdark text-white border-bizdark' : 'bg-white border-bizborder hover:bg-bizbg'}">
+            <span class="block text-xs font-bold truncate max-w-[180px]">${i + 1}. ${esc(x.n)}</span>
+            <span class="block text-[11px] ${x.id === p.id ? 'text-zinc-300' : 'text-bizmuted'}">${x.monto ? $m(x.monto) + (x.pg ? ' · pagado' : '') : 'Sin cobro'}</span>
+          </button>`).join('')}
+      </div>
+
+      ${lnHTML()}
+
+      <label class="flex items-center gap-2 text-xs font-semibold text-bizdark cursor-pointer">
+        <input type="checkbox" data-f="cfgpg" ${CFG.pg ? 'checked' : ''} class="w-4 h-4 accent-[#18191d]">El cliente ya pagó (no cobrar en sitio)
+      </label>
+
+      <div class="flex items-center justify-between pt-3 border-t border-bizborder">
+        <button onclick="$('#dlg-cfg').close()" class="px-4 py-2 rounded-full border border-bizborder text-xs font-semibold text-bizmuted hover:text-bizdark transition-all">Cancelar</button>
+        <button data-a="cfgsave" class="px-5 py-2 rounded-full bg-bizdark text-white text-xs font-bold shadow-sm hover:bg-neutral-800 transition-all">Guardar</button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function cfgGuardarActual() {
+  const [, p] = cfgCur();
+  if (!p) return;
+  lnApply(p);
+  p.pg = CFG.pg;
+}
+
+Object.assign(ACT, {
+  // Catálogo
+  catnew: () => catForm(null),
+  catedit: t => catForm(CAT.find(x => x.id === t.dataset.id)),
+  catchip: t => { KS.cat = t.dataset.m; renderCatalogo(); },
+  catcopy: t => {
+    const c = CAT.find(x => x.id === t.dataset.id);
+    navigator.clipboard.writeText(catMsg(c)).then(() => toast(`Info de "${c.nombre}" copiada`), () => toast('No se pudo copiar', 'rose'));
+  },
+  catsave: async t => {
+    const d = readForm('cat'), id = t.dataset.id;
+    if (!d.nombre) return toast('Escribe el nombre del ítem', 'rose');
+    const pe = parseFloat(d.precio_estandar);
+    if (d.precio_estandar === '' || !(pe >= 0)) return toast('Indica el precio estándar', 'rose');
+    const pm = d.precio_minimo === '' ? null : parseFloat(d.precio_minimo);
+    if (pm != null && (!(pm >= 0) || pm > pe)) return toast('El precio mínimo no puede ser mayor que el estándar', 'rose');
+    const row = { nombre: d.nombre, categoria: d.categoria, precio_estandar: pe, precio_minimo: pm, descripcion_whatsapp: d.descripcion_whatsapp || null };
+    if (d.estado) row.estado = d.estado;
+    t.disabled = true;
+    const ok = await catSave(row, id);
+    t.disabled = false;
+    if (!ok) return;
+    closeDlg('dlg-cat');
+    renderCatalogo();
+    toast(id ? 'Ítem actualizado' : 'Ítem agregado al catálogo');
+  },
+  catdel: async t => {
+    const c = CAT.find(x => x.id === t.dataset.id);
+    if (!c || !confirm(`¿Eliminar "${c.nombre}" del catálogo?\n\nLas fichas y garantías que ya lo usan no cambian.`)) return;
+    if (catEnNube()) {
+      const { error } = await DB.sb.from('catalogo_servicios').delete().eq('id', c.id);
+      if (error) return toast('No se pudo eliminar: ' + error.message, 'rose');
+    }
+    CAT.splice(CAT.indexOf(c), 1);
+    renderCatalogo();
+  },
+  catdemo: async t => { t.disabled = true; await catSeed(); renderCatalogo(); toast('Catálogo de ejemplo cargado'); },
+
+  // Editor de ítems
+  lnadd: t => {
+    const c = CAT.find(x => x.id === t.dataset.id);
+    const ya = LN.lines.find(l => l.cat === c.id);
+    if (ya) ya.q = (+ya.q || 0) + 1;
+    else LN.lines.push({ cat: c.id, n: c.nombre, q: 1, u: catUnidad(c), pu: +c.precio_estandar, min: c.precio_minimo });
+    lnPick();
+  },
+  lnfree: () => { LN.lines.push({ cat: null, n: LN.q.trim(), q: 1, u: 'ud', pu: 0, min: null }); lnPick(); },
+  lnrm: t => { LN.lines.splice(+t.dataset.i, 1); lnRefresh(); },
+
+  // Ajustes & Paradas
+  cfg: t => { STATE.activeMenu = null; renderDespacho(); openCfg(t.dataset.id); },
+  cfgstop: t => { cfgGuardarActual(); cfgSelect(t.dataset.id); renderCfg(); },
+  cfgsave: () => {
+    cfgGuardarActual();
+    const [f] = cfgCur();
+    closeDlg('dlg-cfg');
+    renderDespacho(); updateStatsBanner(); refreshPortal();
+    const cob = f.par.filter(x => !x.pg).reduce((s, x) => s + (+x.monto || 0), 0);
+    toast(`${f.cod} actualizada · cobrar en sitio ${$m(cob)}`);
+  }
+});
+
+Object.assign(FLD, {
+  ksq: el => { KS.q = el.value; renderCatList(); },
+  lnq: el => { LN.q = el.value; $('#ln-sug').innerHTML = lnSug(); lucide.createIcons(); },
+  lnqty: el => { const l = LN.lines[+el.dataset.i]; l.q = Math.max(0, +el.value || 0); lnLineRefresh(+el.dataset.i); },
+  lnpu: el => { const l = LN.lines[+el.dataset.i]; l.pu = Math.max(0, +el.value || 0); lnLineRefresh(+el.dataset.i); },
+  cfgpg: el => { CFG.pg = el.checked; }
+});
+
+function lnLineRefresh(i) {
+  const l = LN.lines[i];
+  $(`#ln-sub-${i}`).textContent = `${l.u || 'ud'} · ${$m((+l.q || 0) * (+l.pu || 0))}`;
+  $(`#ln-warn-${i}`).classList.toggle('hidden', !lnBajoMin(l));
+  $('#ln-total').textContent = $m(lnTotal());
+}
+
+// Enter en el buscador del catálogo: agregar la primera sugerencia
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.matches('#ln-q')) return;
+  e.preventDefault();
+  const b = document.querySelector('#ln-sug [data-a="lnadd"]') || document.querySelector('#ln-sug [data-a="lnfree"]');
   if (b) b.click();
 });
 
@@ -2976,7 +3394,7 @@ function applyAll(rows) {
   if (!by.garantias) CLI.forEach(c => (c.eq || []).forEach(e => GAR.push({ id: e.id, cli: c.id, prod: e.n + (e.mm ? ' · ' + e.mm : ''), serie: '', ini: e.i, ven: e.g, per: '', tk: [] })));
 }
 
-const RENDER = { desp: () => renderDespacho(), ini: () => renderInicio(), cli: () => renderClientes(), plan: () => renderPlan(), hor: () => renderHoras(), eq: () => renderEquipos(), con: () => renderContratistas(), prov: () => renderProveedores(), gar: () => renderGarantias() };
+const RENDER = { desp: () => renderDespacho(), ini: () => renderInicio(), cli: () => renderClientes(), plan: () => renderPlan(), hor: () => renderHoras(), eq: () => renderEquipos(), con: () => renderContratistas(), prov: () => renderProveedores(), gar: () => renderGarantias(), cat: () => renderCatalogo() };
 let rerenderT = null;
 function rerenderAll() {
   clearTimeout(rerenderT);
@@ -3035,6 +3453,9 @@ function subscribeRealtime() {
     .subscribe();
   DB.sb.channel('seguimiento-clientes')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'seguimiento', filter }, onCliente)
+    .subscribe();
+  if (!KS.missing) DB.sb.channel('catalogo-cambios')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'catalogo_servicios', filter }, onCatalogo)
     .subscribe();
 }
 
@@ -3171,9 +3592,11 @@ async function dbBoot(session) {
     DB.emp = yo.empresa_id;
     const empNombre = (yo.empresas && yo.empresas.nombre) || '';
     const rows = await fetchAll();
+    await loadCatalog();
     if (rows.length) applyAll(rows);
     else {
       prepararSemilla();
+      if (!KS.missing && !CAT.length) await catSeed();
       if (empNombre) CE.emp = empNombre;
       toast(`Bienvenido. Cargamos datos de ejemplo para que veas cómo funciona ${empNombre || 'tu espacio'}.`);
     }
@@ -3195,7 +3618,7 @@ async function dbBoot(session) {
 }
 
 async function dbStart() {
-  if (!DB.on) return setSync('demo', 'Sin conexión a Supabase: los datos no se guardan');
+  if (!DB.on) { catSeed(); return setSync('demo', 'Sin conexión a Supabase: los datos no se guardan'); }
   const { data: { session } } = await DB.sb.auth.getSession();
   if (session) dbBoot(session); else showLogin();
 }
@@ -3880,7 +4303,7 @@ function switchView(viewName) {
   VW.v = viewName;
 
   // Toggle view containers
-  const views = ['desp', 'ini', 'cli', 'gar', 'plan', 'hor', 'eq', 'con', 'prov'];
+  const views = ['desp', 'ini', 'cli', 'gar', 'cat', 'plan', 'hor', 'eq', 'con', 'prov'];
   views.forEach(v => {
     const el = $(`#view-${v}`);
     if (el) el.style.display = (v === viewName) ? '' : 'none';
@@ -3926,6 +4349,9 @@ function switchView(viewName) {
     } else if (viewName === 'gar') {
       label.textContent = '+ Nueva Garantía';
       btn.dataset.a = 'gnew';
+    } else if (viewName === 'cat') {
+      label.textContent = '+ Nuevo Ítem';
+      btn.dataset.a = 'catnew';
     } else {
       label.textContent = '+ Agregar';
       btn.dataset.a = 'wiz';
@@ -3942,6 +4368,7 @@ function switchView(viewName) {
   else if (viewName === 'hor') renderHoras();
   else if (viewName === 'plan') renderPlan();
   else if (viewName === 'gar') renderGarantias();
+  else if (viewName === 'cat') renderCatalogo();
 
   updateStatsBanner();
 }
@@ -4098,7 +4525,8 @@ document.addEventListener('click', e => {
 $('#global-search').addEventListener('input', e => {
   STATE.search = e.target.value;
   LS.q = e.target.value;
-  CS.q = VS.q = EQ.q = GS.q = e.target.value;
+  CS.q = VS.q = EQ.q = GS.q = KS.q = e.target.value;
+  if (STATE.view === 'cat') renderCatalogo();
   if (STATE.view === 'gar') renderGarantias();
   if (STATE.view === 'desp') renderDespacho();
   if (STATE.view === 'cli') renderClientes();
@@ -4118,7 +4546,7 @@ $('#state-filter').addEventListener('change', e => {
 // Modal: Wizard Nueva Ficha
 function openWizard() {
   const dlg = $('#dlg-wiz');
-  STATE.wizard = { p: 0, v: VEH[0].id, eq: [PER[0].id], s: '' };
+  STATE.wizard = { p: 0, v: VEH[0].id, eq: [PER[0].id], s: '', it: [] };
   renderWizardStep();
   dlg.showModal();
 }
@@ -4183,6 +4611,7 @@ function renderWizardStep() {
             <label class="block text-xs font-bold text-bizdark uppercase tracking-wider">Nombre del Primer Sitio / Destino</label>
             <input id="wiz-stop-input" type="text" value="${esc(w.s)}" placeholder="Ej. Almacén Central o Hospital Metropolitano" class="w-full bg-bizbg border border-bizborder rounded-2xl p-3.5 text-sm font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark">
             <p class="text-xs text-bizmuted">Podrás añadir más paradas y optimizar la ruta en cualquier momento.</p>
+            <div class="pt-2">${(LN.lines = w.it, lnHTML())}</div>
           </div>
         `}
       </div>
@@ -4230,9 +4659,11 @@ window.handleWizardNext = function() {
       veh,
       est: 'borrador',
       mem: crew.length ? crew : [PER[0]],
-      par: [{ id: uid(), n: firstStop, t: 'Entrega', e: 'pendiente', h: '08:30' }],
+      par: [{ id: uid(), n: firstStop, t: 'Entrega', e: 'pendiente', h: '08:30', pg: false }],
       mod: mods()
     };
+    LN.lines = w.it;
+    lnApply(newFicha.par[0]);
 
     F.push(newFicha);
     $('#dlg-wiz').close();
@@ -4247,7 +4678,7 @@ function openSendModal(f) {
   if (!body) return;
 
   const dateStr = new Date().toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long' });
-  const msgContent = `*Hoja de ruta ${f.cod}* — ${dateStr}\n🚚 ${f.veh.n} (${f.veh.p})\n\n*Equipo:*\n${f.mem.map(m => `• ${m.n} (${m.r})`).join('\n')}\n\n*Ruta:*\n${f.par.map((p, i) => `${i + 1}. ${p.h ? p.h + ' – ' : ''}${p.n} (${p.t})`).join('\n')}\n\nResponde *OK* para confirmar recepción.`;
+  const msgContent = `*Hoja de ruta ${f.cod}* — ${dateStr}\n🚚 ${f.veh.n} (${f.veh.p})\n\n*Equipo:*\n${f.mem.map(m => `• ${m.n} (${m.r})`).join('\n')}\n\n*Ruta:*\n${f.par.map((p, i) => `${i + 1}. ${p.h ? p.h + ' – ' : ''}${p.n} (${p.t})${(p.it || []).length ? '\n   ' + p.it.map(x => `${x.q} × ${x.n}`).join('\n   ') : ''}${+p.monto && !p.pg ? `\n   💵 Cobrar: ${$m(p.monto)}` : ''}`).join('\n')}${(() => { const cob = f.par.filter(p => !p.pg && p.e !== 'completado').reduce((s, p) => s + (+p.monto || 0), 0); return cob ? `\n\n*Total a cobrar en ruta:* ${$m(cob)}` : ''; })()}\n\nResponde *OK* para confirmar recepción.`;
 
   body.innerHTML = `
     <div class="space-y-5">

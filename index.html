@@ -88,6 +88,13 @@
           <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0 hidden" id="side-gar-count"></span>
         </button>
 
+        <button data-a="vw" data-m="cat" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap">
+            <i data-lucide="tag" class="w-4 h-4 shrink-0"></i>
+            <span>Catálogo & Servicios</span>
+          </div>
+        </button>
+
         <button data-a="vw" data-m="plan" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
           <div class="flex items-center gap-3">
             <i data-lucide="kanban-square" class="w-4 h-4"></i>
@@ -222,6 +229,7 @@
       <button data-a="vw" data-m="desp" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Despacho</button>
       <button data-a="vw" data-m="cli" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Clientes</button>
       <button data-a="vw" data-m="gar" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Garantías</button>
+      <button data-a="vw" data-m="cat" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Catálogo</button>
       <button data-a="vw" data-m="plan" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Planeación</button>
       <button data-a="vw" data-m="hor" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Horas</button>
       <button data-a="vw" data-m="eq" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Equipos</button>
@@ -338,6 +346,11 @@
         <div id="gar-content" class="space-y-5"></div>
       </section>
 
+      <!-- VIEW: CATÁLOGO & SERVICIOS -->
+      <section id="view-cat" style="display: none;" class="space-y-5">
+        <div id="cat-content" class="space-y-5"></div>
+      </section>
+
       <!-- VIEW: PLANEACIÓN (Canvas Visual) -->
       <section id="view-plan" style="display: none;" class="space-y-4">
         <div id="plan-content"></div>
@@ -448,6 +461,13 @@
   <dialog id="dlg-plm">
     <div class="dialog-content w-[540px]">
       <div id="plm-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Ítem del catálogo -->
+  <dialog id="dlg-cat">
+    <div class="dialog-content w-[460px]">
+      <div id="cat-body"></div>
     </div>
   </dialog>
 
