@@ -33,6 +33,9 @@
   
   <!-- Lucide Icons -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+
+  <!-- Supabase (base de datos, login, tiempo real y archivos) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -75,6 +78,14 @@
             <span>Clientes (CRM)</span>
           </div>
           <span class="text-xs text-bizmuted font-semibold" id="side-cli-count">6</span>
+        </button>
+
+        <button data-a="vw" data-m="gar" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
+          <div class="flex items-center gap-3 whitespace-nowrap">
+            <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
+            <span>Garantías & Postventa</span>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0 hidden" id="side-gar-count"></span>
         </button>
 
         <button data-a="vw" data-m="plan" class="sidebar-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-bizmuted hover:text-bizdark hover:bg-bizbg transition-all">
@@ -130,22 +141,27 @@
     <!-- User / Session Footer -->
     <div class="p-4 border-t border-bizborder m-2 bg-bizbg rounded-2xl flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-bizdark text-white flex items-center justify-center font-bold text-xs shadow-sm">
+        <div id="user-ini" class="w-9 h-9 rounded-full bg-bizdark text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
           AD
         </div>
         <div class="overflow-hidden">
-          <p class="text-sm font-bold text-bizdark truncate">Andre Morales</p>
-          <p class="text-xs text-bizmuted truncate">Administrador</p>
+          <p id="user-name" class="text-sm font-bold text-bizdark truncate">Andre Morales</p>
+          <p id="user-role" class="text-xs text-bizmuted truncate">Administrador</p>
         </div>
       </div>
-      <button data-a="per" class="p-2 text-bizmuted hover:text-bizdark rounded-xl hover:bg-white transition-all" title="Ajustes de personal">
-        <i data-lucide="settings" class="w-4 h-4"></i>
-      </button>
+      <div class="flex items-center">
+        <button data-a="per" class="p-2 text-bizmuted hover:text-bizdark rounded-xl hover:bg-white transition-all" title="Ajustes de personal">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+        <button data-a="logout" class="p-2 text-bizmuted hover:text-rose-600 rounded-xl hover:bg-white transition-all" title="Cerrar sesión">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
   </aside>
 
   <!-- ================= MAIN CONTENT AREA ================= -->
-  <div class="flex-1 flex flex-col h-screen overflow-y-auto">
+  <div id="app-shell" class="flex-1 flex flex-col h-screen overflow-y-auto">
 
     <!-- Top Navigation / Search Header -->
     <header class="px-6 py-4 bg-transparent sticky top-0 z-20 flex flex-wrap gap-4 items-center justify-between backdrop-blur-md">
@@ -183,6 +199,9 @@
           <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-bizmuted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
         </div>
 
+        <!-- Estado de guardado en Supabase -->
+        <span id="sync-status" class="hidden"></span>
+
         <!-- Personal button -->
         <button data-a="per" class="bg-white border border-bizborder hover:bg-bizbg text-bizdark px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all">
           <i data-lucide="users" class="w-3.5 h-3.5 text-bizmuted"></i>
@@ -202,6 +221,7 @@
       <button data-a="vw" data-m="ini" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizdark text-white">Inicio</button>
       <button data-a="vw" data-m="desp" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Despacho</button>
       <button data-a="vw" data-m="cli" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Clientes</button>
+      <button data-a="vw" data-m="gar" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Garantías</button>
       <button data-a="vw" data-m="plan" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Planeación</button>
       <button data-a="vw" data-m="hor" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Horas</button>
       <button data-a="vw" data-m="eq" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-bizbg text-bizmuted">Equipos</button>
@@ -311,6 +331,11 @@
       <!-- VIEW: CLIENTES (CRM) -->
       <section id="view-cli" style="display: none;" class="space-y-6">
         <div id="cli-content"></div>
+      </section>
+
+      <!-- VIEW: GARANTÍAS & POSTVENTA -->
+      <section id="view-gar" style="display: none;" class="space-y-5">
+        <div id="gar-content" class="space-y-5"></div>
       </section>
 
       <!-- VIEW: PLANEACIÓN (Canvas Visual) -->
@@ -425,6 +450,73 @@
       <div id="plm-body"></div>
     </div>
   </dialog>
+
+  <!-- Dialog: Registrar garantía -->
+  <dialog id="dlg-gar">
+    <div class="dialog-content w-[520px]">
+      <div id="gar-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Ticket de garantía → ficha de despacho -->
+  <dialog id="dlg-tkt">
+    <div class="dialog-content w-[500px]">
+      <div id="tkt-body"></div>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Vista del cliente (Portal de seguimiento) -->
+  <dialog id="dlg-portal">
+    <div class="dialog-content w-[1040px]">
+      <div id="portal-body"></div>
+    </div>
+  </dialog>
+
+  <!-- ================= INICIO DE SESIÓN (Supabase Auth) ================= -->
+  <div id="login-screen" class="fixed inset-0 z-[80] bg-bizbg items-center justify-center p-4" style="display: none">
+    <form id="login-form" class="biz-card p-8 w-full max-w-sm space-y-5" onsubmit="doLogin(); return false">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-bizdark text-white flex items-center justify-center font-bold text-lg shadow-sm">B</div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-bizdark leading-none">BizLink</h1>
+          <p class="text-[11px] font-medium text-bizmuted mt-0.5">Operaciones & Despacho</p>
+        </div>
+      </div>
+      <div>
+        <h2 id="login-title" class="text-base font-bold text-bizdark">Iniciar sesión</h2>
+        <p id="login-sub" class="text-xs text-bizmuted font-medium mt-0.5">Entra con tu correo y contraseña</p>
+      </div>
+      <label class="block auth-reg" style="display: none">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Nombre de tu empresa</span>
+        <input id="login-empresa" type="text" autocomplete="organization" placeholder="Ej. Domingo Auto Import" class="w-full bg-bizbg border border-bizborder rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark">
+      </label>
+      <label class="block auth-reg" style="display: none">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Tu nombre</span>
+        <input id="login-nombre" type="text" autocomplete="name" class="w-full bg-bizbg border border-bizborder rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark">
+      </label>
+      <label class="block">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Correo</span>
+        <input id="login-email" type="email" autocomplete="username" class="w-full bg-bizbg border border-bizborder rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark">
+      </label>
+      <label id="login-pass-wrap" class="block">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Contraseña</span>
+        <input id="login-pass" type="password" autocomplete="current-password" class="w-full bg-bizbg border border-bizborder rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-bizdark focus:outline-none focus:ring-2 focus:ring-bizdark">
+      </label>
+      <p id="login-msg" class="text-xs font-semibold text-rose-600 empty:hidden"></p>
+      <button id="login-btn" type="submit" class="w-full py-2.5 rounded-full bg-bizdark hover:bg-neutral-800 text-white text-sm font-bold shadow-sm transition-all">Entrar</button>
+      <p id="login-alt" class="text-xs text-bizmuted text-center leading-relaxed">
+        ¿No tienes cuenta? <button type="button" onclick="setAuthMode('registro')" class="font-bold text-bizdark underline">Crear cuenta</button><br>
+        <button type="button" onclick="setAuthMode('recuperar')" class="font-semibold text-bizmuted underline mt-1">Olvidé mi contraseña</button>
+      </p>
+    </form>
+    <div id="login-loading" class="text-center space-y-3" style="display: none">
+      <i data-lucide="loader" class="w-6 h-6 mx-auto text-bizmuted animate-spin"></i>
+      <p id="login-loading-msg" class="text-sm font-semibold text-bizmuted"></p>
+    </div>
+  </div>
+
+  <!-- ================= PORTAL PÚBLICO DEL CLIENTE (index.html#/t/<código>) ================= -->
+  <div id="portal-page"></div>
 
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>

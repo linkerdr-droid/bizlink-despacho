@@ -17,6 +17,10 @@ const wa = t => { t = String(t || '').replace(/\D/g, ''); return t.length === 10
 const wlink = (c, text) => `https://wa.me/${wa(c.t || c.tel)}?text=${encodeURIComponent(text)}`;
 const ini = n => (n || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
 
+// Imágenes de muestra (evidencias y firma) para los datos de ejemplo
+const phImg = (label, c1, c2) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="640" height="480" fill="url(#g)"/><g fill="none" stroke="#18191d" stroke-opacity=".25" stroke-width="10"><rect x="250" y="160" width="140" height="100" rx="14"/><circle cx="320" cy="210" r="28"/></g><text x="320" y="330" font-family="sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#18191d" fill-opacity=".6">${label}</text></svg>`);
+const SIG_DEMO = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="140"><path d="M30 95 C 50 40, 70 40, 80 90 S 110 120, 125 70 S 150 30, 160 85 C 168 110, 185 100, 195 75 S 220 60, 230 90 C 240 115, 260 60, 285 70 S 330 95, 370 60" fill="none" stroke="#18191d" stroke-width="3" stroke-linecap="round"/></svg>');
+
 // Constantes de Flujo y Estados
 const FL = [
   { id: 'borrador', l: 'Borrador', t: 'slate' },
@@ -95,6 +99,44 @@ let F = [
     mod: mods()
   }
 ];
+
+// Datos que ve el cliente en su portal de seguimiento (por parada)
+// tok: código único del enlace público · it: conduce digital · fotos: evidencias de la cuadrilla
+const PTD = {
+  s1: {
+    tok: 'pc-a1x9', dir: 'Av. 27 de Febrero #301, Bloque A', srv: 'Entrega de mobiliario de oficina para el área de recepción.',
+    it: [{ n: 'Escritorio en L', q: 2, u: 'ud' }, { n: 'Silla ergonómica', q: 6, u: 'ud' }, { n: 'Archivo metálico 4 gavetas', q: 1, u: 'ud' }],
+    monto: 38500, pg: true, cal: 5, com: 'Muy puntuales y cuidadosos.',
+    fotos: [{ k: 'ini', src: phImg('Inicio · 08:34', '#e0e7ff', '#c7d2fe'), h: '08:34' }, { k: 'fin', src: phImg('Entrega · 09:05', '#dcfce7', '#bbf7d0'), h: '09:05' }],
+    firma: { img: SIG_DEMO, n: 'Laura Peña', d: iso(new Date()), h: '09:06' }
+  },
+  s2: {
+    tok: 'csm-7k2q', cli: 'l1', srv: 'Revisión preventiva de la planta eléctrica y prueba de transferencia automática.',
+    it: [{ n: 'Revisión de planta Cummins 60 kW', q: 1, u: 'serv.' }, { n: 'Filtro de aceite', q: 1, u: 'ud' }, { n: 'Aceite 15W-40', q: 3, u: 'gal' }],
+    monto: 22000, pg: false, fotos: [{ k: 'ini', src: phImg('Inicio · 10:22', '#fef3c7', '#fde68a'), h: '10:22' }]
+  },
+  s3: {
+    tok: 'azf-3m8p', dir: 'Zona Franca Las Américas, Nave 12', srv: 'Recogida de equipos para mantenimiento en taller.',
+    it: [{ n: 'Aire acondicionado de ventana', q: 2, u: 'ud' }], monto: 0, pg: false
+  },
+  s4: {
+    tok: 'sn-9q4w', cli: 'l2', srv: 'Entrega e instalación del compresor de la cámara frigorífica.',
+    it: [{ n: 'Compresor Copeland 3 HP', q: 1, u: 'ud' }, { n: 'Gas refrigerante R-404A', q: 2, u: 'cil.' }, { n: 'Mano de obra de instalación', q: 1, u: 'serv.' }],
+    monto: 54000, pg: false
+  },
+  s5: {
+    tok: 'hca-2v6n', cli: 'l3', srv: 'Mantenimiento preventivo de minisplits del piso 3.',
+    it: [{ n: 'Limpieza de minisplit 18 000 BTU', q: 6, u: 'ud' }, { n: 'Revisión de presión de gas', q: 6, u: 'ud' }],
+    monto: 24000, pg: true
+  },
+  s6: {
+    tok: 'ots-5r1c', dir: 'Av. Winston Churchill, Torre Sur, piso 4', srv: 'Recogida de documentos y equipos de cómputo para traslado.',
+    it: [{ n: 'Cajas de archivo', q: 8, u: 'ud' }, { n: 'Monitores 24"', q: 4, u: 'ud' }], monto: 6500, pg: false,
+    fotos: [{ k: 'fin', src: phImg('Carga completa · 08:10', '#e0f2fe', '#bae6fd'), h: '08:10' }],
+    firma: { img: SIG_DEMO, n: 'Ramón Díaz', d: iso(new Date()), h: '08:12' }
+  }
+};
+F.forEach(f => f.par.forEach(p => Object.assign(p, PTD[p.id] || {})));
 
 // Estado Global de la App
 const STATE = {
@@ -182,7 +224,11 @@ const CLI = [
 
 const LS = { sel: 'l1', q: '', cat: 'todos', fav: false, deuda: false, chk: [], tpl: 'vis', edited: null, edit: null, pf: '' };
 const LB = { tpl: 'lleg', txt: null };
-const CE = { emp: 'BizLink Logística' };
+// Empresa que usa la app (marca blanca del portal de clientes)
+const CE = {
+  emp: 'BizLink Logística', logo: '', col: '#6366f1', pay: true,
+  banco: 'Banco Popular · Cuenta corriente 812-345678-9\nA nombre de: BizLink Logística SRL · RNC 1-31-45678-9\nEnvíe el comprobante de transferencia por WhatsApp.'
+};
 
 // Helpers de Saldos
 const saldo = c => (c.h || []).filter(h => !h.pg).reduce((s, h) => s + (+h.m || 0), 0);
@@ -317,6 +363,15 @@ function updateStatsBanner() {
   const sideCount = $('#side-active-count');
   if (sideCount) sideCount.textContent = activeFichas;
 
+  const garCount = $('#side-gar-count');
+  if (garCount) {
+    const n = GAR.filter(g => garSt(g).k === 'pv').length;
+    garCount.classList.toggle('hidden', !n);
+    garCount.title = `${n} garantía${n === 1 ? '' : 's'} por vencer`;
+  }
+  const cliCount = $('#side-cli-count');
+  if (cliCount) cliCount.textContent = CLI.length;
+
   // Actualizar círculo de progreso SVG
   const circle = $('#gauge-circle');
   if (circle) {
@@ -409,10 +464,18 @@ function renderFichaCard(f, isHighlightedDark = false) {
 
         <!-- Menú contextual desplegable -->
         ${STATE.activeMenu === f.id ? `
-          <div class="absolute right-4 top-14 z-40 w-48 bg-white border border-bizborder rounded-2xl p-1.5 shadow-xl space-y-1">
+          <div class="absolute right-4 top-14 z-40 w-56 bg-white border border-bizborder rounded-2xl p-1.5 shadow-xl space-y-1">
             <button data-a="send" data-id="${f.id}" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-bizdark hover:bg-bizbg transition-all">
               <i data-lucide="send" class="w-3.5 h-3.5 text-emerald-600"></i>
               <span>Enviar a Cuadrilla</span>
+            </button>
+            <button data-a="ptview" data-id="${f.id}" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-bizdark hover:bg-bizbg transition-all">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5 text-indigo-600"></i>
+              <span>Ver vista de cliente</span>
+            </button>
+            <button data-a="ptcopy" data-id="${f.id}" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-bizdark hover:bg-bizbg transition-all">
+              <i data-lucide="link" class="w-3.5 h-3.5 text-indigo-600"></i>
+              <span>Copiar link del cliente</span>
             </button>
             <button data-a="cfg" data-id="${f.id}" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-bizdark hover:bg-bizbg transition-all">
               <i data-lucide="settings-2" class="w-3.5 h-3.5 text-bizmuted"></i>
@@ -718,7 +781,7 @@ function renderClientDetail(c) {
                 <p class="font-bold text-bizdark">${esc(e.n)} <span class="font-normal text-bizmuted">· ${esc(e.mm || '')}</span></p>
                 <p class="text-[11px] text-bizmuted mt-0.5">Instalado: ${e.i || '—'} · Garantía: ${e.g || 'Sin garantía'}</p>
               </div>
-              <span class="biz-pill pill-emerald">Garantía Vigente</span>
+              ${(() => { const [l, t] = e.g ? docSt(e.g) : ['Sin garantía', 'slate']; return `<span class="biz-pill pill-${t}">${l === 'Vigente' ? 'Garantía vigente' : l}</span>`; })()}
             </div>
           `).join('')}
           ${(!c.eq || !c.eq.length) ? '<p class="text-xs text-bizmuted">Sin equipos registrados para este cliente.</p>' : ''}
@@ -2339,13 +2402,1461 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && PB.sel.size) { plRemove([...PB.sel]); renderPlan(); }
 });
 
+// ================= VISTA: GARANTÍAS & POSTVENTA =================
+// g: { id, cli, prod, serie, ini, ven, per, tk: [{ fid, sid, d, falla }] }
+const GAR = [];
+CLI.forEach(c => (c.eq || []).forEach(e => GAR.push({ id: e.id, cli: c.id, prod: e.n + (e.mm ? ' · ' + e.mm : ''), serie: '', ini: e.i, ven: e.g, per: '', tk: [] })));
+GAR.push({ id: 'g-l4', cli: 'l4', prod: 'Instalación de luminarias LED', serie: 'Factura B-0142', ini: dAgo(5), ven: addD(dAgo(5), 180), per: '6m', tk: [] });
+
+const GPER = { '3m': ['3 meses', 3], '6m': ['6 meses', 6], '12m': ['1 año', 12], custom: ['Personalizado', 0] };
+const GS = { q: '', f: 'todas', form: null };
+const TK = { gid: null, falla: '', veh: '', mem: [], h: '09:00' };
+
+const addMeses = (d, n) => { const x = new Date(d + 'T12:00'); x.setMonth(x.getMonth() + n); return iso(x); };
+const garCli = g => CLI.find(c => c.id === g.cli);
+const garTicket = g => (g.tk || []).map(t => {
+  const f = F.find(x => x.id === t.fid), p = f && f.par.find(x => x.id === t.sid);
+  return { ...t, f, p, abierto: !!p && p.e !== 'completado' };
+}).reverse();
+
+// Estado: reclamo abierto > vencida > por vencer (30 días) > vigente
+function garSt(g) {
+  const tk = garTicket(g).find(t => t.abierto);
+  const n = dias(g.ven);
+  if (tk) return { k: 'rec', l: 'Reclamo abierto', t: 'rose', n, tk };
+  if (n < 0) return { k: 'venc', l: `Vencida hace ${-n} d`, t: 'rose', n };
+  if (n <= 30) return { k: 'pv', l: n === 0 ? 'Vence hoy' : `Vence en ${n} d`, t: 'amber', n };
+  return { k: 'vig', l: 'Vigente', t: 'emerald', n };
+}
+
+function garVenForm(fm) {
+  if (fm.per === 'custom') return (+fm.dias > 0) ? addD(hoy(), +fm.dias) : '';
+  return addMeses(hoy(), GPER[fm.per][1]);
+}
+
+function garMsg(g) {
+  const c = garCli(g) || { n: '' }, s = garSt(g);
+  const nom = (c.ct || c.n).split(' ')[0];
+  const item = g.prod + (g.serie ? ` (${g.serie})` : '');
+  if (s.k === 'venc') return `Hola ${nom}, le escribe ${CE.emp}. La garantía de su ${item} venció el ${fdate(g.ven)}. Le ofrecemos un mantenimiento preventivo para mantenerlo funcionando como nuevo. ¿Le gustaría agendar una visita?`;
+  if (s.k === 'pv') return `Hola ${nom}, le escribe ${CE.emp}. Le recordamos que la garantía de su ${item} vence el ${fdate(g.ven)} (en ${s.n} días). Es el momento ideal para un mantenimiento preventivo dentro de la cobertura. ¿Le gustaría agendar una visita?`;
+  return `Hola ${nom}, le escribe ${CE.emp}. Le recordamos que su ${item} está cubierto por garantía hasta el ${fdate(g.ven)}. Si nota cualquier falla, escríbanos por aquí y le enviamos un técnico.`;
+}
+
+function renderGarantias() {
+  const container = $('#gar-content');
+  if (!container) return;
+  const st = GAR.map(garSt);
+  const n = k => st.filter(s => k.includes(s.k)).length;
+  const card = (f, label, val, sub, tone, icon) => `
+    <button data-a="gfil" data-m="${f}" class="biz-card p-5 text-left flex items-start justify-between gap-3 transition-all ${GS.f === f ? SEL_ON : 'hover:border-bizmuted'}">
+      <div>
+        <span class="text-xs font-bold text-bizmuted">${label}</span>
+        <div class="text-3xl font-extrabold tracking-tight mt-1 ${tone}">${val}</div>
+        <p class="text-[11px] font-medium text-bizmuted mt-1">${sub}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-bizbg flex items-center justify-center shrink-0"><i data-lucide="${icon}" class="w-4 h-4 ${tone}"></i></div>
+    </button>`;
+
+  container.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      ${card('act', '🟢 Activas', n(['vig', 'pv']), 'Garantías dentro de su período', 'text-emerald-600', 'shield-check')}
+      ${card('pv', '🟡 Por vencer', n(['pv']), 'Próximos 30 días · oportunidad de mantenimiento', 'text-amber-600', 'calendar-clock')}
+      ${card('mal', '🔴 Vencidas / Reclamos', n(['venc', 'rec']), `${n(['rec'])} reclamo${n(['rec']) === 1 ? '' : 's'} abierto${n(['rec']) === 1 ? '' : 's'}`, 'text-rose-600', 'shield-alert')}
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="relative flex-1 min-w-[220px] max-w-md">
+        <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-bizmuted pointer-events-none"></i>
+        <input data-f="gsq" value="${esc(GS.q)}" placeholder="Buscar por cliente, producto o serie…" class="w-full bg-white border border-bizborder rounded-full pl-11 pr-4 py-2.5 text-sm font-medium text-bizdark placeholder:text-bizmuted focus:outline-none focus:ring-2 focus:ring-bizdark shadow-sm">
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        ${chip(GS.f === 'todas', 'data-a="gfil" data-m="todas"', `Todas (${GAR.length})`)}
+        <button data-a="gnew" class="${BTN_DARK}"><i data-lucide="plus" class="w-4 h-4"></i><span>Registrar garantía</span></button>
+      </div>
+    </div>
+
+    <div id="gar-list" class="biz-card overflow-hidden">${garList()}</div>
+  `;
+  lucide.createIcons();
+}
+
+function garList() {
+  const q = GS.q.toLowerCase().trim();
+  const F_ = { todas: () => true, act: s => ['vig', 'pv'].includes(s.k), pv: s => s.k === 'pv', mal: s => ['venc', 'rec'].includes(s.k) };
+  const rows = GAR.map(g => ({ g, s: garSt(g), c: garCli(g) || { n: 'Cliente eliminado', t: '' } }))
+    .filter(({ g, s, c }) => F_[GS.f](s) && (!q || [c.n, c.ct, c.t, g.prod, g.serie].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => ({ rec: 0, pv: 1, venc: 2, vig: 3 }[a.s.k] - { rec: 0, pv: 1, venc: 2, vig: 3 }[b.s.k]) || a.g.ven.localeCompare(b.g.ven));
+
+  if (!rows.length) return `
+    <div class="p-12 text-center space-y-3">
+      <i data-lucide="shield" class="w-8 h-8 mx-auto text-bizmuted"></i>
+      <p class="text-sm font-semibold text-bizmuted">${GAR.length ? 'No hay garantías con este filtro.' : 'Aún no hay garantías registradas.'}</p>
+      ${GAR.length ? '' : `<button data-a="gnew" class="${BTN_DARK} mx-auto"><i data-lucide="plus" class="w-4 h-4"></i>Registrar la primera</button>`}
+    </div>`;
+
+  return `
+    <div class="hidden lg:grid grid-cols-[1.3fr_1.6fr_1.1fr_1fr_auto] gap-4 px-5 py-3 border-b border-bizborder text-[11px] font-bold text-bizmuted uppercase tracking-wider">
+      <span>Cliente</span><span>Producto / servicio</span><span>Cobertura</span><span>Estado</span><span class="w-[212px] text-right">Acciones</span>
+    </div>
+    <div class="divide-y divide-bizborder">
+      ${rows.map(({ g, s, c }) => {
+        const total = Math.max(1, dias(g.ven) - dias(g.ini));
+        const usado = Math.min(100, Math.max(0, Math.round((-dias(g.ini) / total) * 100)));
+        return `
+          <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1.6fr_1.1fr_1fr_auto] gap-3 lg:gap-4 px-5 py-4 items-center hover:bg-bizbg/60 transition-colors">
+            <div class="flex items-center gap-3 min-w-0">
+              ${avatar(c, 'w-9 h-9 text-xs rounded-full')}
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-bizdark truncate">${esc(c.n)}</p>
+                <p class="text-[11px] text-bizmuted truncate">${esc(c.t || 'Sin teléfono')}</p>
+              </div>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-bizdark truncate" title="${esc(g.prod)}">${esc(g.prod)}</p>
+              <p class="text-[11px] text-bizmuted truncate">${g.serie ? esc(g.serie) : 'Sin serie / factura'}</p>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold text-bizdark">${fdate(g.ini)} → ${fdate(g.ven)}</p>
+              <div class="w-full h-1.5 bg-bizborder rounded-full overflow-hidden mt-1.5" title="${usado}% del período transcurrido">
+                <div class="h-full rounded-full ${s.t === 'rose' ? 'bg-rose-500' : s.t === 'amber' ? 'bg-amber-400' : 'bg-emerald-500'}" style="width: ${usado}%"></div>
+              </div>
+            </div>
+            <div class="flex flex-col items-start gap-1">
+              <span class="biz-pill pill-${s.t}">${s.l}</span>
+              ${s.tk ? `<button data-a="vw" data-m="desp" class="text-[11px] font-bold text-rose-700 underline">Ticket en ${esc(s.tk.f.cod)} →</button>` : ''}
+            </div>
+            <div class="flex items-center gap-1.5 lg:justify-end">
+              ${c.t
+                ? `<a target="_blank" rel="noopener" href="${wlink(c, garMsg(g))}" class="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap" title="Recordatorio / mantenimiento por WhatsApp"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i>Notificar</a>`
+                : '<span class="px-3 py-1.5 rounded-full bg-bizbg text-bizmuted text-[11px] font-bold">Sin WhatsApp</span>'}
+              <button data-a="gtk" data-id="${g.id}" class="${BTN_MINI} whitespace-nowrap" title="Crear ticket y ficha de despacho"><i data-lucide="wrench" class="w-3.5 h-3.5"></i>Crear ticket</button>
+              <button data-a="gdel" data-id="${g.id}" class="p-1.5 text-bizmuted hover:text-rose-600" title="Eliminar garantía"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+const renderGarList = () => { const el = $('#gar-list'); if (el) { el.innerHTML = garList(); lucide.createIcons(); } };
+
+// ---------- Formulario rápido (máximo 4 campos) ----------
+function openGarForm() {
+  GS.form = { cli: null, cq: '', nuevo: false, nn: '', nt: '', prod: '', serie: '', per: '12m', dias: 30 };
+  renderGarForm();
+  $('#dlg-gar').showModal();
+  setTimeout(() => { const i = $('#gar-cq'); if (i) i.focus(); }, 30);
+}
+
+function garCliHTML() {
+  const fm = GS.form, c = fm.cli && CLI.find(x => x.id === fm.cli);
+  if (c) return `
+    <div class="flex items-center justify-between gap-3 p-3 rounded-2xl border-2 border-bizdark bg-bizbg">
+      <div class="flex items-center gap-3 min-w-0">
+        ${avatar(c, 'w-10 h-10 text-sm rounded-full')}
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-bizdark truncate">${esc(c.n)}</p>
+          <p class="text-[11px] text-bizmuted truncate">${esc(c.t || 'Sin teléfono')}${c.dir ? ' · ' + esc(c.dir) : ''}</p>
+        </div>
+      </div>
+      <button type="button" data-a="gclr" class="${BTN_MINI}">Cambiar</button>
+    </div>`;
+
+  if (fm.nuevo) return `
+    <div class="p-3 rounded-2xl border border-dashed border-bizdark space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold text-bizdark uppercase tracking-wider flex items-center gap-1.5"><i data-lucide="user-plus" class="w-3.5 h-3.5"></i>Nuevo cliente</span>
+        <button type="button" data-a="gbusca" class="text-[11px] font-bold text-bizmuted underline">Buscar existente</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <input id="gar-nn" data-f="gnn" value="${esc(fm.nn)}" placeholder="Nombre" autocomplete="off" class="${INP}">
+        <input data-f="gnt" value="${esc(fm.nt)}" type="tel" placeholder="WhatsApp / teléfono" autocomplete="off" class="${INP}">
+      </div>
+      <p class="text-[11px] text-bizmuted">Se guardará también en Clientes.</p>
+    </div>`;
+
+  return `
+    <div class="relative">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-[22px] -translate-y-1/2 text-bizmuted pointer-events-none"></i>
+      <input id="gar-cq" data-f="gcq" value="${esc(fm.cq)}" placeholder="Escribe 2 letras del nombre o el teléfono…" autocomplete="off" class="${INP} pl-10">
+      <div id="gar-sug" class="mt-2 space-y-1.5">${garSug()}</div>
+    </div>`;
+}
+
+function garSug() {
+  const q = GS.form.cq.trim().toLowerCase(), dig = q.replace(/\D/g, '');
+  const nuevo = `<button type="button" data-a="gnuevo" class="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-bizborder text-xs font-bold text-bizdark hover:bg-bizbg"><i data-lucide="user-plus" class="w-4 h-4"></i>+ Nuevo cliente${q ? ` "${esc(GS.form.cq.trim())}"` : ''}</button>`;
+  if (q.length < 2) return nuevo;
+  const hits = CLI.filter(c => [c.n, c.ct].join(' ').toLowerCase().includes(q) || (dig.length >= 3 && String(c.t || '').includes(dig))).slice(0, 6);
+  return hits.map(c => `
+    <button type="button" data-a="gpick" data-id="${c.id}" class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-bizbg hover:bg-bizsubtle text-left transition-colors">
+      <span class="flex items-center gap-2.5 min-w-0">
+        ${avatar(c, 'w-8 h-8 text-[11px] rounded-full')}
+        <span class="min-w-0"><span class="block text-xs font-bold text-bizdark truncate">${esc(c.n)}</span><span class="block text-[11px] text-bizmuted truncate">${esc(c.t || 'Sin teléfono')}${c.z ? ' · ' + esc(c.z) : ''}</span></span>
+      </span>
+      <span class="text-[11px] font-bold text-bizmuted shrink-0">Elegir</span>
+    </button>`).join('') + (hits.length ? '' : '<p class="text-[11px] text-bizmuted px-1">No hay clientes con ese nombre.</p>') + nuevo;
+}
+
+function renderGarForm() {
+  const fm = GS.form, ven = garVenForm(fm);
+  $('#gar-body').innerHTML = `
+    <form class="space-y-5" onsubmit="return false">
+      <div class="flex items-center justify-between pb-3 border-b border-bizborder">
+        <div>
+          <h3 class="text-base font-bold text-bizdark">Registrar garantía</h3>
+          <p class="text-xs text-bizmuted font-medium">Productos o servicios · listo en segundos</p>
+        </div>
+        <button type="button" onclick="$('#dlg-gar').close()" class="p-1 rounded-lg text-bizmuted hover:text-bizdark"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div>
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">1 · Cliente</span>
+        <div id="gar-cli">${garCliHTML()}</div>
+      </div>
+
+      <label class="block">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">2 · Producto / servicio cubierto</span>
+        <input data-f="gprod" value="${esc(fm.prod)}" placeholder="Ej. Aire acondicionado Inverter 12k BTU" autocomplete="off" class="${INP}">
+      </label>
+
+      <label class="block">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">3 · Código / serie / factura <span class="normal-case font-semibold">(opcional)</span></span>
+        <input data-f="gserie" value="${esc(fm.serie)}" placeholder="Ej. SN-48213 o Factura B-0142" autocomplete="off" class="${INP}">
+      </label>
+
+      <div>
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">4 · Período de cobertura</span>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          ${Object.entries(GPER).map(([k, [l]]) => `<button type="button" data-a="gper" data-m="${k}" class="py-2.5 rounded-2xl text-xs font-bold border transition-all ${fm.per === k ? 'bg-bizdark text-white border-bizdark' : 'bg-white text-bizdark border-bizborder hover:bg-bizbg'}">${l}</button>`).join('')}
+        </div>
+        ${fm.per === 'custom' ? `
+          <div class="flex items-center gap-2 mt-2">
+            <input data-f="gdias" type="number" min="1" value="${esc(fm.dias)}" class="${INP} !w-32">
+            <span class="text-xs font-semibold text-bizmuted">días</span>
+          </div>` : ''}
+        <p id="gar-ven" class="text-xs font-semibold text-bizmuted mt-2.5 flex items-center gap-1.5">${garVenHTML(ven)}</p>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-bizborder">
+        <button type="button" onclick="$('#dlg-gar').close()" class="px-4 py-2 rounded-full border border-bizborder text-xs font-semibold text-bizmuted hover:text-bizdark transition-all">Cancelar</button>
+        <button type="button" data-a="gsave" class="px-5 py-2 rounded-full bg-bizdark text-white text-xs font-bold shadow-sm hover:bg-neutral-800 transition-all">Guardar garantía</button>
+      </div>
+    </form>
+  `;
+  lucide.createIcons();
+}
+
+const garVenHTML = ven => ven
+  ? `<i data-lucide="calendar-check" class="w-4 h-4 text-emerald-600"></i>Desde hoy hasta el <b class="text-bizdark">${fdate(ven)}</b>`
+  : '<i data-lucide="calendar-x" class="w-4 h-4"></i>Indica la cantidad de días';
+
+const garRefreshCli = () => { $('#gar-cli').innerHTML = garCliHTML(); lucide.createIcons(); };
+
+// ---------- Ticket: convertir garantía en ficha de despacho ----------
+function openTicket(g) {
+  const c = garCli(g) || {};
+  Object.assign(TK, { gid: g.id, falla: '', veh: (VEH[0] || {}).id || '', mem: PER.filter(p => /técnico/i.test(p.r)).slice(0, 1).map(p => p.id), h: '09:00' });
+  if (!TK.mem.length && PER[0]) TK.mem = [PER[0].id];
+  renderTicket();
+  $('#dlg-tkt').showModal();
+  setTimeout(() => { const t = $('#tkt-falla'); if (t) t.focus(); }, 30);
+}
+
+function renderTicket() {
+  const g = GAR.find(x => x.id === TK.gid), c = garCli(g) || { n: '—' }, s = garSt(g);
+  const sel = 'w-full bg-bizbg border border-bizborder rounded-xl px-3 py-2 text-xs font-semibold text-bizdark';
+  $('#tkt-body').innerHTML = `
+    <div class="space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-bizborder">
+        <div>
+          <h3 class="text-base font-bold text-bizdark">Crear ticket de garantía</h3>
+          <p class="text-xs text-bizmuted font-medium">Se crea una ficha de despacho para enviar un técnico</p>
+        </div>
+        <button onclick="$('#dlg-tkt').close()" class="p-1 rounded-lg text-bizmuted hover:text-bizdark"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-bizbg text-xs space-y-1">
+        <div class="flex items-center justify-between gap-2"><b class="text-bizdark">${esc(c.n)}</b><span class="biz-pill pill-${s.t}">${s.l}</span></div>
+        <p class="text-bizmuted">${esc(g.prod)}${g.serie ? ' · ' + esc(g.serie) : ''} · cubre hasta ${fdate(g.ven)}</p>
+        ${s.k === 'venc' ? '<p class="text-rose-700 font-semibold">⚠️ La garantía está vencida: el servicio podría tener costo.</p>' : ''}
+      </div>
+
+      <label class="block">
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Falla reportada</span>
+        <textarea id="tkt-falla" data-f="tfalla" rows="2" placeholder="Ej. No enfría, gotea agua por la unidad interior" class="${INP} resize-none">${esc(TK.falla)}</textarea>
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
+        <label><span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Vehículo</span>
+          <select data-f="tveh" class="${sel}">${VEH.map(v => `<option value="${v.id}" ${v.id === TK.veh ? 'selected' : ''}>${esc(v.n)} · ${esc(v.p)}</option>`).join('')}</select>
+        </label>
+        <label><span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1">Hora estimada</span>
+          <input type="time" data-f="th" value="${esc(TK.h)}" class="${sel}">
+        </label>
+      </div>
+
+      <div>
+        <span class="block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1.5">Técnicos</span>
+        <div class="flex flex-wrap gap-1.5">
+          ${PER.map(p => chip(TK.mem.includes(p.id), `type="button" data-a="tkper" data-id="${p.id}"`, `${TK.mem.includes(p.id) ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}${esc(p.n.split(' ')[0])} <span class="opacity-60 font-medium">· ${esc(p.r.split(' ')[0])}</span>`)).join('')}
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-bizborder">
+        <button onclick="$('#dlg-tkt').close()" class="px-4 py-2 rounded-full border border-bizborder text-xs font-semibold text-bizmuted hover:text-bizdark transition-all">Cancelar</button>
+        <button data-a="tkok" class="px-5 py-2 rounded-full bg-bizdark text-white text-xs font-bold shadow-sm hover:bg-neutral-800 transition-all flex items-center gap-1.5"><i data-lucide="truck" class="w-3.5 h-3.5"></i>Crear ficha de despacho</button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+const nextCod = () => 'F-' + String(F.reduce((m, f) => Math.max(m, parseInt(String(f.cod).replace(/\D/g, ''), 10) || 0), 0) + 1).padStart(2, '0');
+
+Object.assign(ACT, {
+  gnew: () => openGarForm(),
+  gfil: t => { GS.f = GS.f === t.dataset.m && t.dataset.m !== 'todas' ? 'todas' : t.dataset.m; renderGarantias(); },
+  gpick: t => { GS.form.cli = t.dataset.id; GS.form.nuevo = false; garRefreshCli(); const p = document.querySelector('[data-f="gprod"]'); if (p) p.focus(); },
+  gclr: () => { GS.form.cli = null; garRefreshCli(); $('#gar-cq').focus(); },
+  gnuevo: () => {
+    const q = GS.form.cq.trim(), dig = q.replace(/\D/g, '');
+    Object.assign(GS.form, { nuevo: true, nn: dig.length >= 7 ? '' : q, nt: dig.length >= 7 ? q : '' });
+    garRefreshCli(); $('#gar-nn').focus();
+  },
+  gbusca: () => { GS.form.nuevo = false; garRefreshCli(); $('#gar-cq').focus(); },
+  gper: t => { GS.form.per = t.dataset.m; renderGarForm(); if (t.dataset.m === 'custom') { const d = document.querySelector('[data-f="gdias"]'); if (d) { d.focus(); d.select(); } } },
+  gsave: () => {
+    const fm = GS.form;
+    if (!fm.cli && !fm.nuevo) return toast('Elige un cliente o crea uno nuevo', 'rose');
+    if (fm.nuevo && (!fm.nn.trim() || fm.nt.replace(/\D/g, '').length < 7)) return toast('Escribe el nombre y un teléfono válido del cliente', 'rose');
+    if (!fm.prod.trim()) return toast('Indica el producto o servicio cubierto', 'rose');
+    const ven = garVenForm(fm);
+    if (!ven) return toast('Indica la cantidad de días de cobertura', 'rose');
+
+    let c = fm.cli && CLI.find(x => x.id === fm.cli);
+    if (!c) {
+      c = { id: uid(), n: fm.nn.trim(), tp: 'Persona', ct: '', t: fm.nt.replace(/\D/g, ''), t2: '', em: '', dir: '', z: '', ref: '', ml: '', hor: '', pago: 0, desc: 0, lim: 0, est: 'act', fav: false, f: '', nota: 'Creado desde Garantías.', h: [], eq: [] };
+      CLI.push(c);
+    }
+    const g = { id: uid(), cli: c.id, prod: fm.prod.trim(), serie: fm.serie.trim(), ini: hoy(), ven, per: fm.per === 'custom' ? fm.dias + 'd' : fm.per, tk: [] };
+    GAR.push(g);
+    (c.eq = c.eq || []).push({ id: g.id, n: g.prod, mm: g.serie, i: g.ini, g: g.ven });
+    $('#dlg-gar').close();
+    GS.f = 'todas';
+    renderGarantias();
+    const sc = $('#side-cli-count'); if (sc) sc.textContent = CLI.length;
+    toast(`Garantía registrada para ${c.n} · vence ${fdate(ven)}`);
+  },
+  gdel: t => {
+    const g = GAR.find(x => x.id === t.dataset.id);
+    if (!g || !confirm(`¿Eliminar la garantía de "${g.prod}"?`)) return;
+    GAR.splice(GAR.indexOf(g), 1);
+    const c = garCli(g); if (c && c.eq) c.eq = c.eq.filter(e => e.id !== g.id);
+    renderGarantias();
+  },
+  gtk: t => openTicket(GAR.find(x => x.id === t.dataset.id)),
+  tkper: t => { const id = t.dataset.id; TK.mem = TK.mem.includes(id) ? TK.mem.filter(x => x !== id) : [...TK.mem, id]; renderTicket(); },
+  tkok: () => {
+    const g = GAR.find(x => x.id === TK.gid), c = garCli(g) || { n: 'Cliente', dir: '' };
+    if (!TK.falla.trim()) return toast('Describe la falla reportada', 'rose');
+    if (!TK.mem.length) return toast('Asigna al menos un técnico', 'rose');
+    const stop = {
+      id: uid(), n: c.n, t: 'Garantía', e: 'pendiente', h: TK.h, cli: c.id || null,
+      srv: `Revisión en garantía: ${g.prod}${g.serie ? ' (' + g.serie + ')' : ''}. Falla reportada: ${TK.falla.trim()}`,
+      it: [{ n: g.prod, q: 1, u: g.serie || 'ud' }], monto: 0, pg: true, fotos: []
+    };
+    const f = {
+      id: uid(), cod: nextCod(), veh: VEH.find(v => v.id === TK.veh) || VEH[0], est: 'asignado',
+      mem: PER.filter(p => TK.mem.includes(p.id)), par: [stop], mod: mods(['evidencia', 'firmas'])
+    };
+    F.push(f);
+    (g.tk = g.tk || []).push({ fid: f.id, sid: stop.id, d: hoy(), falla: TK.falla.trim() });
+    $('#dlg-tkt').close();
+    renderGarantias(); updateStatsBanner();
+    toast(`Ticket creado: ficha ${f.cod} asignada a ${f.mem.map(m => m.n.split(' ')[0]).join(', ')}`);
+  }
+});
+
+Object.assign(FLD, {
+  gsq: el => { GS.q = el.value; renderGarList(); },
+  gcq: el => { GS.form.cq = el.value; $('#gar-sug').innerHTML = garSug(); lucide.createIcons(); },
+  gnn: el => { GS.form.nn = el.value; },
+  gnt: el => { GS.form.nt = el.value; },
+  gprod: el => { GS.form.prod = el.value; },
+  gserie: el => { GS.form.serie = el.value; },
+  gdias: el => { GS.form.dias = el.value; $('#gar-ven').innerHTML = garVenHTML(garVenForm(GS.form)); lucide.createIcons(); },
+  tfalla: el => { TK.falla = el.value; },
+  tveh: el => { TK.veh = el.value; },
+  th: el => { TK.h = el.value; }
+});
+
+// Enter en el buscador de clientes: elegir la primera sugerencia
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.matches('#gar-cq')) return;
+  e.preventDefault();
+  const b = document.querySelector('#gar-sug [data-a="gpick"]') || document.querySelector('#gar-sug [data-a="gnuevo"]');
+  if (b) b.click();
+});
+
+// ================= SUPABASE: PERSISTENCIA, LOGIN Y TIEMPO REAL =================
+// La clave "anon" es pública por diseño: la seguridad la dan las políticas RLS (ver supabase/schema.sql).
+const SB_URL = 'https://jhmvliungidqdojsaamy.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobXZsaXVuZ2lkcWRvanNhYW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2OTU3NzIsImV4cCI6MjEwODI3MTc3Mn0.rNWiqri8cnsgp37GUJJuVFrX3xzY1Dl5jP1CyND-mX0';
+const DB = {
+  on: !!(window.supabase && SB_URL && SB_KEY),
+  sb: null, ready: false, uid: null, email: '', emp: null,   // emp: id de la empresa del usuario
+  saved: new Map(),   // "tipo:id" → JSON guardado (para enviar solo lo que cambió)
+  snaps: new Map(),   // tok → JSON del seguimiento publicado
+  ch: new Map(),      // canales de difusión por enlace de cliente
+  busy: false, again: false, timer: null, err: false
+};
+if (DB.on) DB.sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+// Código aleatorio largo para enlaces públicos (no adivinable)
+const rtok = () => Array.from(crypto.getRandomValues(new Uint8Array(15)), b => (b % 36).toString(36)).join('');
+
+// JSON con llaves ordenadas: Postgres reordena las llaves de jsonb y así comparamos sin falsos cambios
+const stable = v => v === null || typeof v !== 'object' ? JSON.stringify(v)
+  : Array.isArray(v) ? '[' + v.map(x => stable(x === undefined ? null : x)).join(',') + ']'
+  : '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+
+const replaceArr = (arr, docs) => arr.splice(0, arr.length, ...docs);
+
+// Colecciones que se guardan: cómo leerlas como documentos y cómo reemplazarlas
+const COL = {
+  personal: { get: () => PER, set: d => replaceArr(PER, d) },
+  vehiculos: { get: () => VEH, set: d => replaceArr(VEH, d) },
+  clientes: { get: () => CLI, set: d => replaceArr(CLI, d) },
+  contratistas: { get: () => CON, set: d => replaceArr(CON, d) },
+  proveedores: { get: () => PROV, set: d => replaceArr(PROV, d) },
+  articulos: { get: () => ART, set: d => replaceArr(ART, d) },
+  garantias: { get: () => GAR, set: d => replaceArr(GAR, d) },
+  movimientos: { get: () => LOG, set: d => replaceArr(LOG, d.sort((a, b) => (b.d + (b.h || '')).localeCompare(a.d + (a.h || '')))) },
+  asistencia: {
+    get: () => Object.entries(REG).map(([id, r]) => ({ id, ex: r.ex, fa: r.fa })),
+    set: d => { Object.keys(REG).forEach(k => delete REG[k]); d.forEach(r => { REG[r.id] = { ex: r.ex, fa: r.fa }; }); }
+  },
+  pizarras: {
+    get: () => PB.boards,
+    set: d => {
+      PB.boards = d.length ? d : [{ id: uid(), name: 'Pizarra principal', items: [], links: [] }];
+      if (!PB.boards.some(b => b.id === PB.cur)) PB.cur = PB.boards[0].id;
+    }
+  },
+  // Las fichas se guardan con ids de vehículo y personal (no copias)
+  fichas: {
+    get: () => F.map(f => ({ ...f, veh: f.veh && f.veh.id, mem: f.mem.map(m => m.id) })),
+    set: d => {
+      F = d.map(x => ({ ...x, veh: VEH.find(v => v.id === x.veh) || VEH[0], mem: (x.mem || []).map(id => PER.find(p => p.id === id)).filter(Boolean) }))
+        .sort((a, b) => a.cod.localeCompare(b.cod, 'es', { numeric: true }));
+    }
+  },
+  config: {
+    get: () => [{ id: 'empresa', ...CE }],
+    set: d => { if (d[0]) { const { id, ...rest } = d[0]; Object.assign(CE, rest); } }
+  }
+};
+const COL_ORDEN = ['personal', 'vehiculos', 'clientes', 'contratistas', 'proveedores', 'articulos', 'movimientos', 'asistencia', 'pizarras', 'fichas', 'garantias', 'config'];
+
+function setSync(state, msg = '') {
+  const el = $('#sync-status');
+  if (!el) return;
+  const S = {
+    ok: ['bg-emerald-50 text-emerald-700 border-emerald-200', 'cloud', 'Guardado'],
+    saving: ['bg-white text-bizmuted border-bizborder', 'loader', 'Guardando…'],
+    error: ['bg-rose-50 text-rose-700 border-rose-200', 'cloud-off', 'Sin conexión'],
+    demo: ['bg-amber-50 text-amber-700 border-amber-200', 'flask-conical', 'Modo demo']
+  }[state];
+  el.className = `hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold shadow-sm ${S[0]}`;
+  el.title = msg;
+  el.innerHTML = `<i data-lucide="${S[1]}" class="w-3.5 h-3.5 ${state === 'saving' ? 'animate-spin' : ''}"></i><span>${S[2]}</span>`;
+  lucide.createIcons();
+}
+
+function queueSave() {
+  if (!DB.ready) return;
+  clearTimeout(DB.timer);
+  DB.timer = setTimeout(flush, 700);
+}
+
+async function flush() {
+  if (!DB.ready) return;
+  if (DB.busy) { DB.again = true; return; }
+  DB.busy = true;
+  try {
+    const up = [], gone = {}, seen = new Set();
+    for (const tipo of COL_ORDEN) {
+      for (const d of COL[tipo].get()) {
+        const k = tipo + ':' + d.id, j = stable(d);
+        seen.add(k);
+        if (DB.saved.get(k) !== j) up.push({ k, j, row: { empresa_id: DB.emp, tipo, id: String(d.id), data: JSON.parse(j), actualizado: new Date().toISOString(), updated_by: DB.uid } });
+      }
+    }
+    for (const k of DB.saved.keys()) if (!seen.has(k)) { const [t, ...r] = k.split(':'); (gone[t] = gone[t] || []).push(r.join(':')); }
+
+    if (up.length || Object.keys(gone).length) setSync('saving');
+    for (let i = 0; i < up.length; i += 200) {
+      const part = up.slice(i, i + 200);
+      const { error } = await DB.sb.from('entidades').upsert(part.map(x => x.row));
+      if (error) throw error;
+      part.forEach(x => DB.saved.set(x.k, x.j));
+    }
+    for (const [tipo, ids] of Object.entries(gone)) {
+      const { error } = await DB.sb.from('entidades').delete().eq('empresa_id', DB.emp).eq('tipo', tipo).in('id', ids);
+      if (error) throw error;
+      ids.forEach(id => DB.saved.delete(tipo + ':' + id));
+    }
+    await publishTracking();
+    if (DB.err) toast('Conexión restablecida');
+    DB.err = false;
+    setSync('ok');
+  } catch (e) {
+    console.error('Error guardando en Supabase', e);
+    if (!DB.err) toast('No se pudo guardar. Se reintentará automáticamente.', 'rose');
+    DB.err = true;
+    setSync('error', e.message || String(e));
+  } finally {
+    DB.busy = false;
+    if (DB.again) { DB.again = false; queueSave(); }
+  }
+}
+
+// Lo que el cliente puede ver de su parada (sin datos de otros clientes de la ruta)
+function ptSnap(f, p) {
+  stopTok(p);
+  const { cli, ...stop } = p;
+  return {
+    i: f.par.indexOf(p),
+    f: {
+      id: f.id, cod: f.cod, est: f.est,
+      veh: { n: f.veh.n, p: f.veh.p, k: f.veh.k },
+      mem: f.mem.map((m, i) => ({ n: m.n, r: m.r, f: m.f || '', t: i === 0 ? m.t : '' }))
+    },
+    par: f.par.map(x => x === p ? { ...stop, dir: ptDir(p) } : { id: x.id, e: x.e, n: '', t: '', h: x.h }),
+    ce: { emp: CE.emp, logo: CE.logo, col: CE.col, pay: CE.pay, banco: CE.pay ? CE.banco : '' }
+  };
+}
+
+const segChannel = tok => {
+  if (!DB.ch.has(tok)) { const c = DB.sb.channel('seg-' + tok); c.subscribe(); DB.ch.set(tok, c); }
+  return DB.ch.get(tok);
+};
+
+async function publishTracking() {
+  const rows = [];
+  F.forEach(f => f.par.forEach(p => {
+    const snap = ptSnap(f, p), j = stable(snap);
+    if (DB.snaps.get(p.tok) !== j) rows.push({ tok: p.tok, snap, j });
+  }));
+  if (!rows.length) return;
+  const { error } = await DB.sb.from('seguimiento').upsert(rows.map(r => ({ tok: r.tok, empresa_id: DB.emp, snap: r.snap, actualizado: new Date().toISOString() })));
+  if (error) throw error;
+  rows.forEach(r => {
+    DB.snaps.set(r.tok, r.j);
+    segChannel(r.tok).send({ type: 'broadcast', event: 'update', payload: { snap: r.snap } });
+  });
+}
+
+async function fetchAll() {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await DB.sb.from('entidades').select('tipo,id,data').eq('empresa_id', DB.emp).order('creado').order('id').range(from, from + 999);
+    if (error) throw error;
+    rows.push(...data);
+    if (data.length < 1000) return rows;
+  }
+}
+
+function applyAll(rows) {
+  const by = {};
+  rows.forEach(r => { (by[r.tipo] = by[r.tipo] || []).push(r.data); DB.saved.set(r.tipo + ':' + r.id, stable(r.data)); });
+  COL_ORDEN.forEach(t => { if (by[t] || t !== 'config') COL[t].set(by[t] || []); });
+  // Empresas creadas antes del módulo de garantías: se generan desde los equipos instalados de cada cliente
+  if (!by.garantias) CLI.forEach(c => (c.eq || []).forEach(e => GAR.push({ id: e.id, cli: c.id, prod: e.n + (e.mm ? ' · ' + e.mm : ''), serie: '', ini: e.i, ven: e.g, per: '', tk: [] })));
+}
+
+const RENDER = { desp: () => renderDespacho(), ini: () => renderInicio(), cli: () => renderClientes(), plan: () => renderPlan(), hor: () => renderHoras(), eq: () => renderEquipos(), con: () => renderContratistas(), prov: () => renderProveedores(), gar: () => renderGarantias() };
+let rerenderT = null;
+function rerenderAll() {
+  clearTimeout(rerenderT);
+  rerenderT = setTimeout(() => {
+    const a = document.activeElement;
+    if (a && a.matches('input, textarea, select') && !a.closest('#login-screen')) return rerenderAll();   // no interrumpir a quien escribe
+    renderSidebarMembers();
+    (RENDER[STATE.view] || RENDER.desp)();
+    updateStatsBanner();
+    refreshPortal();
+  }, 250);
+}
+
+// Cambios hechos por otros usuarios
+function onRemote({ eventType, new: nw, old }) {
+  const r = eventType === 'DELETE' ? old : nw;
+  if (!r || !COL[r.tipo] || (eventType !== 'DELETE' && r.updated_by === DB.uid)) return;
+  const k = r.tipo + ':' + r.id, col = COL[r.tipo];
+  let docs = [...col.get()];
+  if (eventType === 'DELETE') {
+    if (!DB.saved.has(k)) return;
+    DB.saved.delete(k);
+    docs = docs.filter(d => String(d.id) !== r.id);
+  } else {
+    const j = stable(r.data);
+    if (DB.saved.get(k) === j) return;
+    DB.saved.set(k, j);
+    const i = docs.findIndex(d => String(d.id) === r.id);
+    if (i >= 0) docs[i] = r.data; else docs.push(r.data);
+  }
+  col.set(docs);
+  // Las fichas apuntan a personal y vehículos: se reconstruyen para no quedar con copias viejas
+  if (r.tipo === 'personal' || r.tipo === 'vehiculos') COL.fichas.set(COL.fichas.get());
+  rerenderAll();
+}
+
+// Firma o calificación hecha por el cliente desde su enlace
+function onCliente({ new: row }) {
+  if (!row || !row.cliente) return;
+  const [, p] = ptFind(row.tok);
+  if (!p) return;
+  const c = row.cliente;
+  const hechos = [];
+  if (c.firma && !p.firma) { p.firma = c.firma; hechos.push('firmó la conformidad'); }
+  if (c.cal && !p.cal) { p.cal = c.cal; p.com = c.com || ''; hechos.push(`calificó con ${c.cal} ★`); }
+  if (!hechos.length) return;
+  toast(`${p.n}: el cliente ${hechos.join(' y ')}`);
+  rerenderAll();
+  queueSave();
+}
+
+function subscribeRealtime() {
+  const filter = 'empresa_id=eq.' + DB.emp;
+  DB.sb.channel('entidades-cambios')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'entidades', filter }, onRemote)
+    .subscribe();
+  DB.sb.channel('seguimiento-clientes')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'seguimiento', filter }, onCliente)
+    .subscribe();
+}
+
+// Primera vez: sube los datos de ejemplo con enlaces nuevos y seguros
+function prepararSemilla() {
+  F.forEach(f => f.par.forEach(p => { p.tok = rtok(); }));
+}
+
+// ---------- Login, registro y recuperación de contraseña ----------
+const AUTH = { modo: 'entrar' };   // entrar | registro | recuperar
+const AUTH_TXT = {
+  entrar: ['Iniciar sesión', 'Entra con tu correo y contraseña', 'Entrar'],
+  registro: ['Crear cuenta', 'Regístrate gratis y crea el espacio de tu empresa', 'Crear cuenta'],
+  recuperar: ['Recuperar contraseña', 'Te enviaremos un enlace para crear una nueva', 'Enviar enlace']
+};
+const AUTH_ERR = {
+  'Invalid login credentials': 'Correo o contraseña incorrectos.',
+  'Email not confirmed': 'Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada.',
+  'User already registered': 'Ese correo ya tiene una cuenta. Inicia sesión.',
+  'Password should be at least 6 characters.': 'La contraseña debe tener al menos 6 caracteres.',
+  'Unable to validate email address: invalid format': 'El correo no es válido.'
+};
+const authErr = e => AUTH_ERR[e.message] || (/rate limit/i.test(e.message) ? 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' : e.message);
+
+function setAuthMode(m) {
+  AUTH.modo = m;
+  const [t, s, b] = AUTH_TXT[m];
+  $('#login-title').textContent = t;
+  $('#login-sub').textContent = s;
+  $('#login-btn').textContent = b;
+  $$('.auth-reg').forEach(el => { el.style.display = m === 'registro' ? '' : 'none'; });
+  $('#login-pass-wrap').style.display = m === 'recuperar' ? 'none' : '';
+  $('#login-pass').autocomplete = m === 'registro' ? 'new-password' : 'current-password';
+  $('#login-alt').innerHTML = m === 'entrar'
+    ? '¿No tienes cuenta? <button type="button" onclick="setAuthMode(\'registro\')" class="font-bold text-bizdark underline">Crear cuenta</button><br><button type="button" onclick="setAuthMode(\'recuperar\')" class="font-semibold text-bizmuted underline mt-1">Olvidé mi contraseña</button>'
+    : '¿Ya tienes cuenta? <button type="button" onclick="setAuthMode(\'entrar\')" class="font-bold text-bizdark underline">Iniciar sesión</button>';
+  authMsg('');
+}
+window.setAuthMode = setAuthMode;
+
+function authMsg(msg, ok = false) {
+  const el = $('#login-msg');
+  el.textContent = msg;
+  el.className = `text-xs font-semibold empty:hidden ${ok ? 'text-emerald-700' : 'text-rose-600'}`;
+}
+
+function showLogin(msg = '', loading = false, ok = false) {
+  $('#login-screen').style.display = 'flex';
+  $('#login-form').style.display = loading ? 'none' : '';
+  $('#login-loading').style.display = loading ? '' : 'none';
+  if (loading) $('#login-loading-msg').textContent = msg;
+  else { authMsg(msg, ok); setTimeout(() => $('#login-email').focus(), 50); }
+  lucide.createIcons();
+}
+const hideLogin = () => { $('#login-screen').style.display = 'none'; };
+
+async function doLogin() {
+  const email = $('#login-email').value.trim(), password = $('#login-pass').value;
+  const m = AUTH.modo, btn = $('#login-btn');
+  if (!email) return authMsg('Escribe tu correo.');
+  if (m !== 'recuperar' && !password) return authMsg('Escribe tu contraseña.');
+  if (m === 'registro' && !$('#login-empresa').value.trim()) return authMsg('Escribe el nombre de tu empresa.');
+
+  btn.disabled = true; btn.textContent = 'Un momento…';
+  const volver = location.href.split('#')[0];
+  let res;
+  if (m === 'entrar') res = await DB.sb.auth.signInWithPassword({ email, password });
+  else if (m === 'registro') res = await DB.sb.auth.signUp({
+    email, password,
+    options: { emailRedirectTo: volver, data: { empresa: $('#login-empresa').value.trim(), nombre: $('#login-nombre').value.trim() } }
+  });
+  else res = await DB.sb.auth.resetPasswordForEmail(email, { redirectTo: volver });
+  btn.disabled = false; btn.textContent = AUTH_TXT[m][2];
+
+  if (res.error) return authMsg(authErr(res.error));
+  if (m === 'recuperar') return authMsg('Si el correo tiene cuenta, te llegará un enlace para crear una nueva contraseña.', true);
+  if (m === 'registro' && res.data.user && (res.data.user.identities || []).length === 0) return authMsg(AUTH_ERR['User already registered']);
+  if (!res.data.session) return authMsg('¡Cuenta creada! Te enviamos un correo para confirmarla. Ábrelo y luego inicia sesión.', true);
+  $('#login-pass').value = '';
+  dbBoot(res.data.session);
+}
+window.doLogin = doLogin;
+
+// Enlace de "Olvidé mi contraseña": pedir la nueva al volver a la app
+if (DB.on) DB.sb.auth.onAuthStateChange(async ev => {
+  if (ev !== 'PASSWORD_RECOVERY') return;
+  const nueva = prompt('Escribe tu nueva contraseña (mínimo 6 caracteres):');
+  if (!nueva) return;
+  const { error } = await DB.sb.auth.updateUser({ password: nueva });
+  toast(error ? authErr(error) : 'Contraseña actualizada', error ? 'rose' : 'dark');
+});
+
+async function miEmpresa(session) {
+  const q = () => DB.sb.from('miembros').select('empresa_id, nombre, rol, empresas(nombre)').eq('user_id', session.user.id).order('creado').limit(1);
+  let { data, error } = await q();
+  if (error) throw error;
+  if (!data.length) {
+    // Cuenta creada antes del trigger o desde el panel: se le crea su empresa
+    const meta = session.user.user_metadata || {};
+    const r = await DB.sb.rpc('crear_mi_empresa', { p_nombre: meta.empresa || '' });
+    if (r.error) throw r.error;
+    ({ data, error } = await q());
+    if (error) throw error;
+  }
+  return data[0];
+}
+
+async function dbBoot(session) {
+  DB.uid = session.user.id;
+  DB.email = session.user.email;
+  showLogin('Cargando datos de la empresa…', true);
+  try {
+    const yo = await miEmpresa(session);
+    DB.emp = yo.empresa_id;
+    const empNombre = (yo.empresas && yo.empresas.nombre) || '';
+    const rows = await fetchAll();
+    if (rows.length) applyAll(rows);
+    else {
+      prepararSemilla();
+      if (empNombre) CE.emp = empNombre;
+      toast(`Bienvenido. Cargamos datos de ejemplo para que veas cómo funciona ${empNombre || 'tu espacio'}.`);
+    }
+    DB.ready = true;
+    const nm = $('#user-name'), rl = $('#user-role'), av = $('#user-ini');
+    const quien = yo.nombre || (session.user.user_metadata || {}).nombre || DB.email.split('@')[0];
+    if (nm) nm.textContent = quien;
+    if (rl) rl.textContent = empNombre || DB.email;
+    if (av) av.textContent = ini(quien);
+    hideLogin();
+    rerenderAll();
+    subscribeRealtime();
+    await flush();
+  } catch (e) {
+    console.error(e);
+    const falta = /relation .* does not exist|Could not find the (table|function)|schema cache/i.test(e.message || '');
+    showLogin(falta ? 'Falta crear las tablas: ejecuta supabase/schema.sql en el SQL Editor de Supabase.' : 'No se pudo cargar: ' + (e.message || e));
+  }
+}
+
+async function dbStart() {
+  if (!DB.on) return setSync('demo', 'Sin conexión a Supabase: los datos no se guardan');
+  const { data: { session } } = await DB.sb.auth.getSession();
+  if (session) dbBoot(session); else showLogin();
+}
+
+// Guardar después de cada acción del usuario y cada pocos segundos (fotos, firmas, etc.)
+['click', 'change', 'input', 'pointerup'].forEach(ev => document.addEventListener(ev, queueSave));
+setInterval(() => { if (DB.ready && !DB.busy) flush(); }, 5000);
+window.addEventListener('beforeunload', e => {
+  if (!DB.ready) return;
+  const pendiente = COL_ORDEN.some(t => COL[t].get().some(d => DB.saved.get(t + ':' + d.id) !== stable(d)));
+  if (pendiente) { flush(); e.preventDefault(); e.returnValue = ''; }
+});
+
+// Sube una imagen (data URL) al bucket y devuelve su URL pública
+async function subirImg(dataUrl, carpeta) {
+  if (!DB.ready) return dataUrl;
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `${DB.emp}/${carpeta}/${rtok()}.${blob.type === 'image/png' ? 'png' : 'jpg'}`;
+    const { error } = await DB.sb.storage.from('evidencias').upload(path, blob, { contentType: blob.type, cacheControl: '31536000' });
+    if (error) throw error;
+    return DB.sb.storage.from('evidencias').getPublicUrl(path).data.publicUrl;
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo subir la imagen a la nube; se guardó localmente', 'rose');
+    return dataUrl;
+  }
+}
+
+Object.assign(ACT, {
+  logout: async () => {
+    if (!DB.on) return toast('Modo demo: no hay sesión iniciada');
+    if (!confirm('¿Cerrar sesión?')) return;
+    await flush();
+    await DB.sb.auth.signOut();
+    location.reload();
+  }
+});
+
+// ================= PORTAL DE SEGUIMIENTO PARA CLIENTES =================
+// Enlace público por parada: index.html#/t/<tok>  (sin login; el token es el acceso)
+const PTS = {
+  prog: ['Programado', '⚪', 'slate', 'Su servicio está programado'],
+  ruta: ['En camino', '🟡', 'amber', 'Nuestro equipo va en camino'],
+  sitio: ['En sitio', '🟣', 'violet', 'El equipo está trabajando en su ubicación'],
+  fin: ['Completado', '🟢', 'emerald', '¡Servicio completado!']
+};
+const PTL = { fid: 'f1', sid: 's2', rate: 0, com: '', drawn: false };
+const isPublic = () => document.body.classList.contains('public-mode');
+const stopTok = p => p.tok || (p.tok = rtok());
+const ptLink = p => location.href.split('#')[0] + '#/t/' + stopTok(p);
+const ptFind = tok => { for (const f of F) { const p = f.par.find(x => x.tok === tok); if (p) return [f, p]; } return []; };
+const ptCli = p => (p.cli && CLI.find(c => c.id === p.cli)) || CLI.find(c => c.n === p.n);
+const ptDir = p => { const c = ptCli(p); return p.dir || (c ? [c.dir, c.z].filter(Boolean).join(', ') : ''); };
+const ptNum = (f, p) => `${f.cod}-${f.par.indexOf(p) + 1}`;
+const ahora = () => new Date().toTimeString().slice(0, 5);
+
+function ptSt(f, p) {
+  if (p.e === 'completado') return 'fin';
+  if (p.e === 'en_proceso') return 'sitio';
+  if (f.est === 'en_sitio' && f.par.find(x => x.e !== 'completado') === p) return 'sitio';
+  if (['en_ruta', 'en_sitio'].includes(f.est)) return 'ruta';
+  return 'prog';
+}
+
+function ptEta(f, p) {
+  const antes = f.par.slice(0, f.par.indexOf(p)).filter(x => x.e !== 'completado').length;
+  let min = null;
+  if (p.h) {
+    const [hh, mm] = p.h.split(':').map(Number), d = new Date();
+    min = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm) - d) / 6e4);
+  }
+  return { antes, min };
+}
+
+function portalHTML(f, p) {
+  const st = ptSt(f, p), [sl, , tone, title] = PTS[st];
+  const steps = Object.keys(PTS), si = steps.indexOf(st);
+  const col = CE.col, lead = f.mem[0] || { n: 'Equipo asignado', r: '' }, otros = f.mem.slice(1);
+  const dir = ptDir(p), fotos = p.fotos || [], items = p.it || [];
+  const { antes, min } = ptEta(f, p);
+  const live = st === 'ruta' || st === 'sitio';
+  const msgEq = `Hola ${lead.n.split(' ')[0]}, le escribo por el servicio ${ptNum(f, p)} en ${p.n}. Tengo una consulta:`;
+  const sub = st === 'prog' ? (p.h ? `Hora programada: ${p.h}. Le avisaremos cuando el equipo salga hacia su ubicación.` : 'Le avisaremos cuando el equipo salga hacia su ubicación.')
+    : st === 'ruta' ? (antes ? `Hay ${antes} parada${antes === 1 ? '' : 's'} antes de la suya.` : 'Usted es la próxima parada de la ruta.')
+    : st === 'sitio' ? 'Nuestro equipo ya está en su ubicación realizando el trabajo.'
+    : 'Gracias por confiar en nosotros. Abajo encontrará las evidencias y su comprobante.';
+
+  return `
+    <div class="min-h-full bg-bizbg text-bizdark" data-tok="${stopTok(p)}">
+      <header class="bg-white/90 backdrop-blur border-b border-bizborder px-5 py-3.5 flex items-center justify-between gap-3 sticky top-0 z-10">
+        ${CE.logo
+          ? `<img src="${CE.logo}" alt="${esc(CE.emp)}" class="h-9 max-w-[170px] object-contain">`
+          : `<span class="text-lg font-extrabold tracking-tight truncate" style="color: ${col}">${esc(CE.emp)}</span>`}
+        <span class="text-[11px] font-bold text-bizmuted flex items-center gap-1.5 shrink-0">
+          <span class="relative flex w-2 h-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full w-2 h-2 bg-emerald-500"></span></span>
+          Seguimiento en vivo
+        </span>
+      </header>
+
+      <main class="p-4 space-y-4 max-w-md mx-auto">
+        <!-- A. Estado en vivo -->
+        <section class="biz-card p-5 space-y-4">
+          <div class="flex items-center justify-between gap-2 text-[11px] font-bold text-bizmuted uppercase tracking-wider">
+            <span>Orden ${esc(ptNum(f, p))}</span>
+            <span>${new Date().toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+          </div>
+          <span class="biz-pill pill-${tone} !text-sm !px-4 !py-1.5">
+            <span class="relative flex w-2.5 h-2.5">
+              ${live ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-50"></span>' : ''}
+              <span class="relative inline-flex rounded-full w-2.5 h-2.5 bg-current"></span>
+            </span>
+            ${sl}
+          </span>
+          <div>
+            <h1 class="text-xl font-extrabold leading-tight">${title}</h1>
+            <p class="text-sm text-bizmuted font-medium mt-1">${sub}</p>
+          </div>
+          ${st === 'ruta' && p.h ? `
+            <div class="flex items-center justify-between gap-3 p-4 rounded-2xl text-white" style="background: ${col}">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider opacity-80">Llegada estimada</p>
+                <p class="text-3xl font-extrabold tracking-tight">${esc(p.h)}</p>
+              </div>
+              <p class="text-sm font-bold text-right opacity-90">${min == null ? '' : min > 0 ? `en ~${min} min` : 'Llegando'}</p>
+            </div>` : ''}
+          <div class="grid grid-cols-4 gap-1.5">
+            ${steps.map((s, i) => `
+              <div class="space-y-1.5">
+                <div class="h-1.5 rounded-full transition-all" style="background: ${i <= si ? col : '#e4e2d9'}"></div>
+                <p class="text-[10px] font-bold ${i === si ? 'text-bizdark' : 'text-bizmuted'}">${PTS[s][0]}</p>
+              </div>`).join('')}
+          </div>
+        </section>
+
+        <!-- Célula de trabajo -->
+        <section class="biz-card p-5 space-y-4">
+          ${secTitle('Su equipo asignado')}
+          <div class="flex items-center gap-3">
+            ${avatar(lead, 'w-14 h-14 text-lg rounded-2xl')}
+            <div class="min-w-0">
+              <p class="text-base font-bold truncate">${esc(lead.n)}</p>
+              <p class="text-xs text-bizmuted font-medium">${esc(lead.r || 'Técnico')} · a cargo del servicio</p>
+              ${otros.length ? `<p class="text-[11px] text-bizmuted mt-0.5">Acompañado por ${otros.map(m => esc(m.n.split(' ')[0])).join(', ')}</p>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-bizbg">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl bg-white border border-bizborder flex items-center justify-center shrink-0"><i data-lucide="${f.veh.k === 'bus' ? 'bus' : f.veh.k === 'car' ? 'car' : 'truck'}" class="w-5 h-5"></i></div>
+              <div class="min-w-0">
+                <p class="text-sm font-bold truncate">${esc(f.veh.n)}</p>
+                <p class="text-[11px] text-bizmuted">Vehículo asignado · para su garita</p>
+              </div>
+            </div>
+            <span class="pt-plate">${esc(f.veh.p)}</span>
+          </div>
+        </section>
+
+        <!-- B. Detalle y ubicación -->
+        <section class="biz-card p-5 space-y-4">
+          ${secTitle('Detalle del servicio', `<span class="biz-pill pill-slate">${esc(p.t)}</span>`)}
+          <div class="flex items-start gap-3">
+            <i data-lucide="map-pin" class="w-4 h-4 mt-0.5 shrink-0" style="color: ${col}"></i>
+            <div class="min-w-0">
+              <p class="text-sm font-bold">${esc(p.n)}</p>
+              ${dir ? `<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dir)}" class="text-xs text-bizmuted font-medium underline decoration-dotted">${esc(dir)}</a>` : ''}
+            </div>
+          </div>
+          ${p.srv ? `<div class="flex items-start gap-3"><i data-lucide="clipboard-list" class="w-4 h-4 mt-0.5 shrink-0" style="color: ${col}"></i><p class="text-sm text-bizdark font-medium">${esc(p.srv)}</p></div>` : ''}
+          ${items.length ? `
+            <details class="group rounded-2xl border border-bizborder overflow-hidden">
+              <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none text-sm font-bold">
+                <span class="flex items-center gap-2"><i data-lucide="receipt-text" class="w-4 h-4 text-bizmuted"></i>Conduce digital · ${items.length} ítem${items.length === 1 ? '' : 's'}</span>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-bizmuted transition-transform group-open:rotate-180"></i>
+              </summary>
+              <ul class="divide-y divide-bizborder border-t border-bizborder">
+                ${items.map(x => `<li class="flex items-center justify-between gap-3 px-4 py-2.5 text-xs"><span class="font-semibold">${esc(x.n)}</span><span class="text-bizmuted font-bold shrink-0">${esc(x.q)} ${esc(x.u || '')}</span></li>`).join('')}
+              </ul>
+            </details>` : ''}
+        </section>
+
+        <!-- C. Evidencias -->
+        <section class="biz-card p-5 space-y-3">
+          ${secTitle('Evidencias fotográficas', `<span class="text-[11px] font-semibold text-bizmuted">${fotos.length} foto${fotos.length === 1 ? '' : 's'}</span>`)}
+          ${fotos.length ? `
+            <div class="grid grid-cols-2 gap-2">
+              ${fotos.map((x, i) => `
+                <button data-a="ptimg" data-s="${stopTok(p)}" data-m="${i}" class="relative rounded-2xl overflow-hidden border border-bizborder aspect-[4/3] bg-bizbg">
+                  <img src="${x.src}" alt="Evidencia" class="w-full h-full object-cover">
+                  <span class="absolute left-2 bottom-2 biz-pill bg-white/90 text-bizdark !text-[10px]">${x.k === 'fin' ? 'Fin' : 'Inicio'}${x.h ? ' · ' + esc(x.h) : ''}</span>
+                </button>`).join('')}
+            </div>` : '<p class="text-xs text-bizmuted p-3 rounded-2xl bg-bizbg">Las fotos de inicio y fin aparecerán aquí cuando el equipo las cargue.</p>'}
+        </section>
+
+        <!-- Conformidad / firma -->
+        <section class="biz-card p-5 space-y-3">
+          ${secTitle('Conformidad del cliente', p.firma ? '<span class="biz-pill pill-emerald">Firmado</span>' : '')}
+          ${p.firma ? `
+            <div class="rounded-2xl border border-bizborder bg-white p-3"><img src="${p.firma.img}" alt="Firma" class="w-full h-28 object-contain"></div>
+            <p class="text-xs text-bizmuted font-medium">Recibido conforme por <b class="text-bizdark">${esc(p.firma.n)}</b> · ${fdate(p.firma.d)} ${esc(p.firma.h || '')}</p>`
+          : st === 'sitio' || st === 'fin' ? `
+            <p class="text-xs text-bizmuted font-medium">Firme con su dedo dentro del recuadro para confirmar que recibió el servicio conforme.</p>
+            <canvas id="pt-sig" class="pt-sig w-full h-40 rounded-2xl border-2 border-dashed border-bizborder bg-white"></canvas>
+            <input id="pt-sig-name" type="text" placeholder="Nombre de quien recibe" class="${INP}">
+            <div class="flex items-center justify-between gap-2">
+              <button data-a="ptsigclr" class="${BTN_MINI}"><i data-lucide="eraser" class="w-3 h-3"></i>Limpiar</button>
+              <button data-a="ptsigok" data-s="${stopTok(p)}" class="px-4 py-2 rounded-full text-white text-xs font-bold shadow-sm" style="background: ${col}">Firmar conformidad</button>
+            </div>`
+          : '<p class="text-xs text-bizmuted p-3 rounded-2xl bg-bizbg">Podrá firmar su conformidad cuando el equipo esté en sitio o al finalizar el servicio.</p>'}
+        </section>
+
+        ${st === 'fin' ? `
+          <!-- Calificación -->
+          <section class="biz-card p-5 space-y-3">
+            ${secTitle('Califique el servicio')}
+            ${p.cal ? `
+              <div class="flex items-center gap-1">${[1, 2, 3, 4, 5].map(i => `<i data-lucide="star" class="w-7 h-7 ${i <= p.cal ? 'fill-amber-400 text-amber-400' : 'text-bizborder'}"></i>`).join('')}</div>
+              <p class="text-xs text-bizmuted font-medium">¡Gracias por su valoración!${p.com ? ` “${esc(p.com)}”` : ''}</p>`
+            : `
+              <div class="flex items-center gap-1">${[1, 2, 3, 4, 5].map(i => `<button data-a="ptstar" data-m="${i}" class="p-0.5 transition-transform active:scale-90" title="${i} estrella${i === 1 ? '' : 's'}"><i data-lucide="star" class="w-8 h-8 ${i <= PTL.rate ? 'fill-amber-400 text-amber-400' : 'text-bizborder'}"></i></button>`).join('')}</div>
+              <textarea data-f="ptcom" rows="2" placeholder="Comentario opcional…" class="${INP} resize-none text-xs">${esc(PTL.com)}</textarea>
+              <div class="flex justify-end"><button data-a="ptrate" data-s="${stopTok(p)}" class="px-4 py-2 rounded-full text-white text-xs font-bold shadow-sm ${PTL.rate ? '' : 'opacity-50'}" style="background: ${col}">Enviar calificación</button></div>`}
+          </section>` : ''}
+
+        ${CE.pay && +p.monto ? `
+          <!-- D. Pago -->
+          <section class="biz-card p-5 space-y-3">
+            ${secTitle('Resumen de pago', `<span class="biz-pill ${p.pg ? 'pill-emerald' : 'pill-amber'}">${p.pg ? 'Pagado' : 'Pendiente de pago'}</span>`)}
+            <div class="flex items-end justify-between">
+              <span class="text-xs text-bizmuted font-semibold">Monto total</span>
+              <span class="text-2xl font-extrabold tracking-tight">${$m(p.monto)}</span>
+            </div>
+            ${!p.pg && CE.banco ? `
+              <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2">
+                <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Datos para transferencia</p>
+                <p class="text-xs text-bizdark font-medium whitespace-pre-line">${esc(CE.banco)}</p>
+                <button data-a="ptbank" class="${BTN_MINI}"><i data-lucide="copy" class="w-3 h-3"></i>Copiar datos</button>
+              </div>` : ''}
+          </section>` : ''}
+
+        <!-- E. Acciones rápidas -->
+        <section class="grid grid-cols-1 gap-2">
+          <button data-a="ptpdf" data-s="${stopTok(p)}" class="w-full py-3 rounded-2xl bg-white border border-bizborder text-sm font-bold flex items-center justify-center gap-2 hover:bg-bizsubtle transition-all">
+            <i data-lucide="file-down" class="w-4 h-4"></i>Descargar conduce / comprobante
+          </button>
+          ${lead.t ? `
+            <a target="_blank" rel="noopener" href="${wlink(lead, msgEq)}" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="message-circle" class="w-4 h-4"></i>Contactar al equipo por WhatsApp
+            </a>` : ''}
+        </section>
+      </main>
+
+      <footer class="text-center text-[11px] text-bizmuted font-medium py-6 px-4">
+        Proporcionado por <b class="text-bizdark">${esc(CE.emp)}</b> · Powered by BizLink
+      </footer>
+    </div>
+  `;
+}
+
+const ptNotFound = () => `
+  <div class="min-h-[60vh] flex items-center justify-center p-6">
+    <div class="biz-card p-8 max-w-sm text-center space-y-2">
+      <i data-lucide="link-2-off" class="w-8 h-8 mx-auto text-bizmuted"></i>
+      <h1 class="text-lg font-bold">Enlace no disponible</h1>
+      <p class="text-sm text-bizmuted">Este enlace de seguimiento no existe o ya expiró. Contacte a ${esc(CE.emp)} para recibir uno nuevo.</p>
+    </div>
+  </div>`;
+
+function mountPortal(el, f, p) {
+  if (!el) return;
+  const top = el.scrollTop;
+  el.innerHTML = f ? portalHTML(f, p) : ptNotFound();
+  el.scrollTop = top;
+  lucide.createIcons();
+  initSig();
+}
+
+// Lienzo de firma (dedo o mouse)
+function initSig() {
+  const cv = $('#pt-sig');
+  PTL.drawn = false;
+  if (!cv) return;
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, r.width * dpr);
+  cv.height = Math.max(1, r.height * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  Object.assign(ctx, { lineWidth: 2.4, lineCap: 'round', lineJoin: 'round', strokeStyle: '#18191d' });
+  const pt = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  let on = false;
+  cv.onpointerdown = e => { on = true; cv.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pt(e)); };
+  cv.onpointermove = e => { if (!on) return; ctx.lineTo(...pt(e)); ctx.stroke(); PTL.drawn = true; };
+  cv.onpointerup = cv.onpointercancel = () => { on = false; };
+}
+
+function renderPortalPage() {
+  const tok = (location.hash.match(/^#\/t\/([\w-]+)/) || [])[1];
+  const [f, p] = ptFind(tok);
+  document.title = `Seguimiento · ${CE.emp}`;
+  mountPortal($('#portal-page'), f, p);
+}
+
+// Modal interno: simula lo que ve el cliente + controles de cuadrilla y marca blanca
+function ptCur() {
+  const f = F.find(x => x.id === PTL.fid) || F[0];
+  const p = f && (f.par.find(x => x.id === PTL.sid) || f.par[0]);
+  return [f, p];
+}
+
+function openPortalModal(fid) {
+  const f = F.find(x => x.id === fid) || F[0];
+  PTL.fid = f.id;
+  PTL.sid = (f.par.find(x => x.e !== 'completado') || f.par[0] || {}).id;
+  PTL.rate = 0; PTL.com = '';
+  renderPortalModal();
+  $('#dlg-portal').showModal();
+  renderPtlPhone();
+}
+
+function renderPtlPhone() {
+  const [f, p] = ptCur();
+  mountPortal($('#ptl-phone'), p ? f : null, p);
+}
+
+function renderPortalModal() {
+  const [f, p] = ptCur();
+  const c = p && ptCli(p);
+  const link = p ? ptLink(p) : '';
+  const lab = 'block text-[11px] font-bold text-bizmuted uppercase tracking-wider mb-1';
+  const box = 'p-4 rounded-2xl border border-bizborder space-y-3';
+  const sel = 'w-full bg-bizbg border border-bizborder rounded-xl px-3 py-2 text-xs font-semibold text-bizdark';
+
+  $('#portal-body').innerHTML = `
+    <div class="space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-bizborder">
+        <div>
+          <h3 class="text-base font-bold text-bizdark">Vista del cliente · Portal de seguimiento</h3>
+          <p class="text-xs text-bizmuted font-medium">Así verá su cliente el enlace público, sin iniciar sesión</p>
+        </div>
+        <button onclick="$('#dlg-portal').close()" class="p-1 rounded-lg text-bizmuted hover:text-bizdark"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <label><span class="${lab}">Ficha</span>
+              <select data-f="ptlf" class="${sel}">${F.map(x => `<option value="${x.id}" ${x.id === f.id ? 'selected' : ''}>${esc(x.cod)} · ${esc(x.veh.n)}</option>`).join('')}</select>
+            </label>
+            <label><span class="${lab}">Cliente / parada</span>
+              <select data-f="ptls" class="${sel}">${f.par.map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(x.n)}</option>`).join('')}</select>
+            </label>
+          </div>
+
+          ${p ? `
+          <div class="${box}">
+            <span class="${lab}">Enlace público del cliente</span>
+            <div class="flex items-center gap-2">
+              <input readonly value="${esc(link)}" class="flex-1 min-w-0 bg-bizbg border border-bizborder rounded-xl px-3 py-2 text-[11px] font-mono text-bizdark">
+              <button data-a="ptcopycur" class="${BTN_MINI}"><i data-lucide="copy" class="w-3 h-3"></i>Copiar</button>
+              <a href="${esc(link)}" target="_blank" rel="noopener" class="${BTN_MINI}"><i data-lucide="external-link" class="w-3 h-3"></i>Abrir</a>
+            </div>
+            ${c && c.t ? `
+              <a target="_blank" rel="noopener" href="${wlink(c, `Hola ${(c.ct || c.n).split(' ')[0]}, le escribe ${CE.emp}. Puede seguir su servicio en vivo aquí: ${link}`)}" class="inline-flex px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold items-center gap-1.5">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>Enviar enlace a ${esc(c.n)}
+              </a>` : '<p class="text-[11px] text-bizmuted">Esta parada no está vinculada a un cliente con teléfono. Copia el enlace y envíalo por el medio que prefieras.</p>'}
+          </div>
+
+          <div class="${box}">
+            <span class="${lab}">Simular avance de la cuadrilla</span>
+            <div class="grid grid-cols-2 gap-3">
+              <label><span class="text-[11px] font-semibold text-bizmuted">Estado de la ficha</span>
+                <select data-f="ptfest" class="${sel}">${FL.map(x => `<option value="${x.id}" ${x.id === f.est ? 'selected' : ''}>${x.l}</option>`).join('')}</select>
+              </label>
+              <label><span class="text-[11px] font-semibold text-bizmuted">Estado de esta parada</span>
+                <select data-f="ptpest" class="${sel}">${Object.entries(PS).map(([k, v]) => `<option value="${k}" ${k === p.e ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+              </label>
+              <label><span class="text-[11px] font-semibold text-bizmuted">Hora estimada</span>
+                <input type="time" data-f="pteta" value="${esc(p.h || '')}" class="${sel}">
+              </label>
+              <label><span class="text-[11px] font-semibold text-bizmuted">Monto del servicio</span>
+                <input type="number" data-f="ptmonto" value="${+p.monto || 0}" class="${sel}">
+              </label>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="${BTN_MINI} cursor-pointer"><i data-lucide="camera" class="w-3 h-3"></i>Foto de inicio<input type="file" accept="image/*" capture="environment" data-f="ptfoto" data-m="ini" class="hidden"></label>
+              <label class="${BTN_MINI} cursor-pointer"><i data-lucide="camera" class="w-3 h-3"></i>Foto de fin<input type="file" accept="image/*" capture="environment" data-f="ptfoto" data-m="fin" class="hidden"></label>
+              <button data-a="ptpg" class="${BTN_MINI}"><i data-lucide="${p.pg ? 'rotate-ccw' : 'badge-check'}" class="w-3 h-3"></i>${p.pg ? 'Marcar pendiente' : 'Marcar pagado'}</button>
+              ${p.firma ? `<button data-a="ptsigdel" class="${BTN_MINI} text-rose-600"><i data-lucide="eraser" class="w-3 h-3"></i>Quitar firma</button>` : ''}
+              ${(p.fotos || []).length ? `<button data-a="ptfotodel" class="${BTN_MINI} text-rose-600"><i data-lucide="image-off" class="w-3 h-3"></i>Quitar fotos</button>` : ''}
+            </div>
+          </div>` : '<p class="text-xs text-bizmuted">Esta ficha no tiene paradas.</p>'}
+
+          <div class="${box}">
+            <span class="${lab}">Marca blanca de tu empresa</span>
+            <div class="grid grid-cols-[1fr_auto] gap-3 items-end">
+              <label><span class="text-[11px] font-semibold text-bizmuted">Nombre comercial</span>
+                <input type="text" data-f="ptemp" value="${esc(CE.emp)}" class="${sel}">
+              </label>
+              <label><span class="text-[11px] font-semibold text-bizmuted">Color</span>
+                <input type="color" data-f="ptcol" value="${esc(CE.col)}" class="block w-12 h-[34px] rounded-xl border border-bizborder bg-white cursor-pointer">
+              </label>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              ${CE.logo ? `<img src="${CE.logo}" alt="Logo" class="h-8 max-w-[120px] object-contain rounded-lg border border-bizborder bg-white p-1">` : ''}
+              <label class="${BTN_MINI} cursor-pointer"><i data-lucide="image-up" class="w-3 h-3"></i>${CE.logo ? 'Cambiar logo' : 'Subir logo'}<input type="file" accept="image/*" data-f="ptlogo" class="hidden"></label>
+              ${CE.logo ? `<button data-a="ptlogodel" class="${BTN_MINI} text-rose-600">Quitar logo</button>` : '<span class="text-[11px] text-bizmuted">Sin logo se muestra el nombre con tu color.</span>'}
+            </div>
+            <label class="flex items-center gap-2 text-xs font-semibold text-bizdark cursor-pointer">
+              <input type="checkbox" data-f="ptpay" ${CE.pay ? 'checked' : ''} class="w-4 h-4 accent-[#18191d]">Mostrar resumen de pago al cliente
+            </label>
+            <label class="block"><span class="text-[11px] font-semibold text-bizmuted">Datos bancarios / instrucciones de pago</span>
+              <textarea data-f="ptbanco" rows="3" class="${sel} resize-none">${esc(CE.banco)}</textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="lg:sticky lg:top-0">
+          <div class="pt-phone"><div id="ptl-phone" class="h-full overflow-y-auto"></div></div>
+          <p class="text-[11px] text-bizmuted text-center mt-2">Vista previa en vivo · los cambios se reflejan al instante</p>
+        </div>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function refreshPortal() {
+  if (isPublic()) renderPortalPage();
+  const dlg = $('#dlg-portal');
+  if (dlg && dlg.open) renderPtlPhone();
+}
+
+// Reduce las fotos/logos antes de guardarlos
+function readImg(file, max, cb) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, max / Math.max(im.width, im.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(im.width * s);
+      cv.height = Math.round(im.height * s);
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      cb(cv.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85));
+    };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+// Conduce / comprobante imprimible (Guardar como PDF desde el diálogo de impresión)
+function ptPrint(f, p) {
+  let area = $('#print-area');
+  if (!area) { area = document.createElement('div'); area.id = 'print-area'; document.body.appendChild(area); }
+  const lead = f.mem[0] || { n: '—' }, c = ptCli(p), items = p.it || [];
+  const th = 'text-left text-[11px] uppercase tracking-wider text-bizmuted py-2 border-b border-bizborder';
+  area.innerHTML = `
+    <div class="p-10 text-bizdark text-sm space-y-6 bg-white">
+      <div class="flex items-start justify-between gap-6 pb-4 border-b-2 border-bizdark">
+        <div>
+          ${CE.logo ? `<img src="${CE.logo}" class="h-12 max-w-[200px] object-contain mb-1">` : `<p class="text-2xl font-extrabold" style="color: ${CE.col}">${esc(CE.emp)}</p>`}
+          <p class="text-xs text-bizmuted">${esc(CE.emp)}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-lg font-extrabold uppercase tracking-wide">Conduce / Comprobante</p>
+          <p class="text-xs">No. <b>${esc(ptNum(f, p))}</b> · ${fdate(hoy())}</p>
+          <p class="text-xs">Estado: <b>${PTS[ptSt(f, p)][0]}</b></p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-6 text-xs">
+        <div><p class="font-bold uppercase text-[11px] text-bizmuted mb-1">Cliente / destino</p><p class="font-bold">${esc(c ? c.n : p.n)}</p><p>${esc(ptDir(p) || p.n)}</p>${c && c.ct ? `<p>Contacto: ${esc(c.ct)}</p>` : ''}</div>
+        <div><p class="font-bold uppercase text-[11px] text-bizmuted mb-1">Equipo y vehículo</p><p class="font-bold">${esc(lead.n)}</p><p>${esc(f.veh.n)} · Placa ${esc(f.veh.p)}</p><p>Servicio: ${esc(p.t)}${p.h ? ' · ' + esc(p.h) : ''}</p></div>
+      </div>
+      ${p.srv ? `<p class="text-xs"><b>Descripción:</b> ${esc(p.srv)}</p>` : ''}
+      <table class="w-full text-xs">
+        <thead><tr><th class="${th}">Descripción</th><th class="${th} !text-right">Cantidad</th><th class="${th} !text-right">Unidad</th></tr></thead>
+        <tbody>${items.map(x => `<tr><td class="py-2 border-b border-bizborder">${esc(x.n)}</td><td class="py-2 border-b border-bizborder text-right">${esc(x.q)}</td><td class="py-2 border-b border-bizborder text-right">${esc(x.u || '')}</td></tr>`).join('') || '<tr><td colspan="3" class="py-3 text-bizmuted">Sin ítems registrados</td></tr>'}</tbody>
+      </table>
+      ${+p.monto ? `<div class="flex justify-end"><div class="text-right"><p class="text-xs text-bizmuted">Total</p><p class="text-2xl font-extrabold">${$m(p.monto)}</p><p class="text-xs font-bold ${p.pg ? 'text-emerald-700' : 'text-amber-700'}">${p.pg ? 'PAGADO' : 'PENDIENTE DE PAGO'}</p></div></div>` : ''}
+      ${(p.fotos || []).length ? `<div class="flex gap-3">${p.fotos.slice(0, 4).map(x => `<img src="${x.src}" class="w-32 h-24 object-cover rounded-lg border border-bizborder">`).join('')}</div>` : ''}
+      <div class="grid grid-cols-2 gap-10 pt-6">
+        <div class="text-center text-xs">${p.firma ? `<img src="${p.firma.img}" class="h-16 mx-auto object-contain">` : '<div class="h-16"></div>'}<div class="border-t border-bizdark pt-1">Recibido conforme${p.firma ? ': ' + esc(p.firma.n) + ' · ' + fdate(p.firma.d) : ''}</div></div>
+        <div class="text-center text-xs"><div class="h-16"></div><div class="border-t border-bizdark pt-1">Entregado por: ${esc(lead.n)}</div></div>
+      </div>
+      <p class="text-center text-[10px] text-bizmuted pt-4">Proporcionado por ${esc(CE.emp)} · Powered by BizLink</p>
+    </div>
+  `;
+  window.print();
+}
+
+function ptLightbox(src) {
+  const el = document.createElement('div');
+  el.className = 'fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out';
+  el.innerHTML = `<img src="${src}" class="max-w-full max-h-full rounded-2xl shadow-2xl">`;
+  el.onclick = () => el.remove();
+  (document.querySelector('dialog[open]') || document.body).appendChild(el);
+}
+
+const ptByTok = t => ptFind(t.dataset.s || (t.closest('[data-tok]') || {}).dataset?.tok);
+const ptAfter = () => { refreshPortal(); if (!isPublic()) { renderDespacho(); updateStatsBanner(); } };
+
+Object.assign(ACT, {
+  ptview: t => { STATE.activeMenu = null; renderDespacho(); openPortalModal(t.dataset.id); },
+  ptcopy: t => {
+    const f = F.find(x => x.id === t.dataset.id), p = f && (f.par.find(x => x.e !== 'completado') || f.par[0]);
+    STATE.activeMenu = null; renderDespacho();
+    if (!p) return toast('La ficha no tiene paradas', 'rose');
+    navigator.clipboard.writeText(ptLink(p)).then(() => toast(`Link de ${p.n} copiado`), () => toast('No se pudo copiar', 'rose'));
+  },
+  ptcopycur: () => { const [, p] = ptCur(); navigator.clipboard.writeText(ptLink(p)).then(() => toast('Link copiado'), () => toast('No se pudo copiar', 'rose')); },
+  ptimg: t => { const [, p] = ptByTok(t); if (p) ptLightbox(p.fotos[+t.dataset.m].src); },
+  ptsigclr: () => initSig(),
+  ptsigok: async t => {
+    const [, p] = ptByTok(t), cv = $('#pt-sig'), name = ($('#pt-sig-name') || {}).value?.trim();
+    if (!p || !cv) return;
+    if (!PTL.drawn) return toast('Dibuje su firma en el recuadro', 'rose');
+    if (!name) return toast('Escriba el nombre de quien recibe', 'rose');
+    const firma = { img: cv.toDataURL('image/png'), n: name, d: hoy(), h: ahora() };
+    if (isPublic() && DB.on) {
+      t.disabled = true;
+      const { data, error } = await DB.sb.rpc('seguimiento_firmar', { p_tok: p.tok, p_img: firma.img, p_nombre: name });
+      t.disabled = false;
+      if (error || !data) return toast(error ? 'No se pudo registrar la firma. Intente de nuevo.' : 'Esta orden ya tiene una firma registrada.', 'rose');
+      PTL.cliente = { ...PTL.cliente, firma };
+    }
+    p.firma = firma;
+    ptAfter(); toast('¡Gracias! Conformidad registrada');
+  },
+  ptstar: t => { PTL.rate = +t.dataset.m; refreshPortal(); },
+  ptrate: async t => {
+    const [, p] = ptByTok(t);
+    if (!p) return;
+    if (!PTL.rate) return toast('Seleccione de 1 a 5 estrellas', 'rose');
+    if (isPublic() && DB.on) {
+      const { data, error } = await DB.sb.rpc('seguimiento_calificar', { p_tok: p.tok, p_cal: PTL.rate, p_com: PTL.com.trim() });
+      if (error || !data) return toast(error ? 'No se pudo enviar la calificación. Intente de nuevo.' : 'Esta orden ya fue calificada.', 'rose');
+      PTL.cliente = { ...PTL.cliente, cal: PTL.rate, com: PTL.com.trim() };
+    }
+    p.cal = PTL.rate; p.com = PTL.com.trim();
+    PTL.rate = 0; PTL.com = '';
+    ptAfter(); toast('¡Gracias por su calificación!');
+  },
+  ptbank: () => navigator.clipboard.writeText(CE.banco).then(() => toast('Datos bancarios copiados'), () => toast('No se pudo copiar', 'rose')),
+  ptpdf: t => { const [f, p] = ptByTok(t); if (p) ptPrint(f, p); },
+  ptpg: () => { const [, p] = ptCur(); p.pg = !p.pg; renderPortalModal(); ptAfter(); },
+  ptsigdel: async () => {
+    const [, p] = ptCur();
+    p.firma = null;
+    renderPortalModal(); ptAfter();
+    if (DB.ready) {
+      // También se borra la firma que el cliente hizo desde su enlace
+      const { data } = await DB.sb.from('seguimiento').select('cliente').eq('tok', p.tok).maybeSingle();
+      if (data && data.cliente && data.cliente.firma) {
+        const { firma, ...resto } = data.cliente;
+        await DB.sb.from('seguimiento').update({ cliente: resto }).eq('tok', p.tok);
+      }
+    }
+  },
+  ptfotodel: () => { const [, p] = ptCur(); p.fotos = []; renderPortalModal(); ptAfter(); },
+  ptlogodel: () => { CE.logo = ''; renderPortalModal(); ptAfter(); }
+});
+
+Object.assign(FLD, {
+  ptlf: el => { const f = F.find(x => x.id === el.value); PTL.fid = f.id; PTL.sid = (f.par.find(x => x.e !== 'completado') || f.par[0] || {}).id; renderPortalModal(); renderPtlPhone(); },
+  ptls: el => { PTL.sid = el.value; PTL.rate = 0; PTL.com = ''; renderPortalModal(); renderPtlPhone(); },
+  ptfest: el => { ptCur()[0].est = el.value; ptAfter(); },
+  ptpest: el => {
+    const [f, p] = ptCur();
+    p.e = el.value;
+    if (f.par.every(x => x.e === 'completado')) f.est = 'completado';
+    renderPortalModal(); ptAfter();
+  },
+  pteta: el => { ptCur()[1].h = el.value; ptAfter(); },
+  ptmonto: el => { ptCur()[1].monto = +el.value || 0; refreshPortal(); },
+  ptfoto: el => {
+    const file = el.files && el.files[0], [, p] = ptCur();
+    if (!file) return;
+    toast('Subiendo foto…');
+    readImg(file, 1000, async src => {
+      src = await subirImg(src, 'fotos/' + stopTok(p));
+      (p.fotos = p.fotos || []).push({ k: el.dataset.m, src, h: ahora() });
+      renderPortalModal(); ptAfter(); queueSave(); toast('Foto cargada');
+    });
+  },
+  ptemp: el => { CE.emp = el.value || 'Mi empresa'; refreshPortal(); },
+  ptcol: el => { CE.col = el.value; refreshPortal(); },
+  ptlogo: el => {
+    const file = el.files && el.files[0];
+    if (file) readImg(file, 400, async src => { CE.logo = await subirImg(src, 'marca'); renderPortalModal(); ptAfter(); queueSave(); });
+  },
+  ptpay: el => { CE.pay = el.checked; refreshPortal(); },
+  ptbanco: el => { CE.banco = el.value; refreshPortal(); },
+  ptcom: el => { PTL.com = el.value; }
+});
+
+// Modo demo (sin Supabase): sincronización en vivo entre pestañas del mismo navegador
+const BC = !DB.on && 'BroadcastChannel' in window ? new BroadcastChannel('bizlink-seguimiento') : null;
+let syncT = null;
+function syncOut() {
+  if (!BC) return;
+  clearTimeout(syncT);
+  syncT = setTimeout(() => BC.postMessage({ type: 'state', pub: isPublic(), F: JSON.parse(JSON.stringify(F)), CE: { ...CE } }), 80);
+}
+if (BC) {
+  BC.onmessage = ({ data }) => {
+    if (data.type === 'hello' && !isPublic()) return syncOut();
+    if (data.type !== 'state') return;
+    if (isPublic() && !data.pub) {
+      // El cliente recibe el estado completo de la empresa
+      F = data.F;
+      Object.assign(CE, data.CE);
+      if (!PTL.drawn) renderPortalPage();
+    } else if (!isPublic() && data.pub) {
+      // La empresa solo recibe lo que hace el cliente: firma y calificación
+      data.F.forEach(rf => rf.par.forEach(rp => {
+        const p = (F.find(x => x.id === rf.id) || { par: [] }).par.find(x => x.id === rp.id);
+        if (p) Object.assign(p, { firma: rp.firma, cal: rp.cal, com: rp.com });
+      }));
+      refreshPortal();
+    }
+  };
+  ['click', 'change', 'input'].forEach(ev => document.addEventListener(ev, syncOut));
+}
+
+// Con Supabase: el cliente lee su parada por la función seguimiento_get y escucha cambios por difusión
+const hashTok = () => (location.hash.match(/^#\/t\/([\w-]+)/) || [])[1];
+
+function applySnap({ snap, cliente }) {
+  PTL.cliente = cliente || PTL.cliente || {};
+  const f = { ...snap.f, par: snap.par.map(x => ({ ...x })) }, p = f.par[snap.i], c = PTL.cliente;
+  if (!p.firma && c.firma) p.firma = c.firma;
+  if (!p.cal && c.cal) { p.cal = c.cal; p.com = c.com || ''; }
+  F = [f];
+  Object.assign(CE, snap.ce);
+}
+
+async function refetchPortal(tok) {
+  const { data, error } = await DB.sb.rpc('seguimiento_get', { p_tok: tok });
+  if (error) console.error(error);
+  if (data && data.snap) applySnap(data); else F = [];
+  if (!PTL.drawn) renderPortalPage();
+}
+
+async function loadPortalRemote(tok) {
+  $('#portal-page').innerHTML = '<div class="min-h-[60vh] flex items-center justify-center text-sm text-bizmuted font-semibold">Cargando seguimiento…</div>';
+  await refetchPortal(tok);
+  if (!DB.ch.has('pub-' + tok)) {
+    const c = DB.sb.channel('seg-' + tok)
+      .on('broadcast', { event: 'update' }, ({ payload }) => {
+        applySnap({ snap: payload.snap });
+        if (!PTL.drawn) renderPortalPage();
+      })
+      .subscribe();
+    DB.ch.set('pub-' + tok, c);
+  }
+}
+
+function routePortal() {
+  const pub = /^#\/t\//.test(location.hash);
+  document.body.classList.toggle('public-mode', pub);
+  if (!pub) return;
+  hideLogin();
+  if (DB.on) return loadPortalRemote(hashTok());
+  renderPortalPage();
+  if (BC) BC.postMessage({ type: 'hello' });
+}
+window.addEventListener('hashchange', () => { if (/^#\/t\//.test(location.hash) || isPublic()) location.reload(); });
+
+// Refresca estado y tiempo estimado (sin interrumpir si el cliente está firmando o escribiendo)
+setInterval(() => {
+  if (!isPublic() || PTL.drawn || (document.activeElement && document.activeElement.closest('#portal-page input, #portal-page textarea'))) return;
+  if (DB.on) refetchPortal(hashTok()); else renderPortalPage();
+}, 20000);
+
 // ================= NAVEGACIÓN Y EVENTOS =================
 function switchView(viewName) {
   STATE.view = viewName;
   VW.v = viewName;
 
   // Toggle view containers
-  const views = ['desp', 'ini', 'cli', 'plan', 'hor', 'eq', 'con', 'prov'];
+  const views = ['desp', 'ini', 'cli', 'gar', 'plan', 'hor', 'eq', 'con', 'prov'];
   views.forEach(v => {
     const el = $(`#view-${v}`);
     if (el) el.style.display = (v === viewName) ? '' : 'none';
@@ -2388,6 +3899,9 @@ function switchView(viewName) {
     } else if (viewName === 'plan') {
       label.textContent = '+ Nueva Nota';
       btn.dataset.a = 'pnota';
+    } else if (viewName === 'gar') {
+      label.textContent = '+ Nueva Garantía';
+      btn.dataset.a = 'gnew';
     } else {
       label.textContent = '+ Agregar';
       btn.dataset.a = 'wiz';
@@ -2403,6 +3917,7 @@ function switchView(viewName) {
   else if (viewName === 'eq') renderEquipos();
   else if (viewName === 'hor') renderHoras();
   else if (viewName === 'plan') renderPlan();
+  else if (viewName === 'gar') renderGarantias();
 
   updateStatsBanner();
 }
@@ -2559,7 +4074,8 @@ document.addEventListener('click', e => {
 $('#global-search').addEventListener('input', e => {
   STATE.search = e.target.value;
   LS.q = e.target.value;
-  CS.q = VS.q = EQ.q = e.target.value;
+  CS.q = VS.q = EQ.q = GS.q = e.target.value;
+  if (STATE.view === 'gar') renderGarantias();
   if (STATE.view === 'desp') renderDespacho();
   if (STATE.view === 'cli') renderClientes();
   if (STATE.view === 'con') renderContratistas();
@@ -2809,6 +4325,8 @@ function init() {
   renderSidebarMembers();
   switchView('desp');
   updateStatsBanner();
+  routePortal();
+  if (!isPublic()) dbStart();
 }
 
 window.addEventListener('DOMContentLoaded', init);
